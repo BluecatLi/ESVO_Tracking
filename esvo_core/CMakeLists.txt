@@ -11,13 +11,46 @@ catkin_simple(ALL_DEPS_REQUIRED)
 
 find_package(OpenCV REQUIRED)
 
+# ORFCV part added by yufan
+# ORFCV
+
+# ORFCV part
+find_package(VISP 3.4.0 REQUIRED visp_core)
+add_definitions(${VISP_DEFINITIONS})
+INCLUDE_DIRECTORIES(
+	${VISP_INCLUDE_DIR})
+find_package(OGRE 1.12.2 REQUIRED)
+#set(OGRE_CONFIG_DIR "/home/yufan/Related/Dependency/ogre-1.12.2/OgreConfigs")
+#file(COPY ${OGRE_CONFIG_DIR}/plugins.cfg ${OGRE_CONFIG_DIR}/resources.cfg
+#     DESTINATION ${CMAKE_BINARY_DIR})
+message(${CMAKE_BINARY_DIR})
+INCLUDE_DIRECTORIES(
+	${OGRE_INCLUDE_DIR})
+
+# ORFCV
+FIND_PACKAGE(ORFCV REQUIRED)
+
+IF(ORFCV_FOUND)
+  INCLUDE(${ORFCV_USE_FILE})
+ENDIF(ORFCV_FOUND)
+message(${ORFCV_USE_FILE})
+LINK_DIRECTORIES(${ORFCV_LINK_DIRECTORIES})
+
+INCLUDE_DIRECTORIES(
+	${ORFCV_INCLUDE_DIR}
+	${ORFCV_EXTERN_INCLUDE_DIR}
+  )
+
+
 ###########
 ## Build ##
 ###########
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include)
+include_directories(
+    ${OpenCV_INCLUDE_DIRS}
+    ${VISP_LIBRARIES})
 
 set(HEADERS
   include/esvo_core/core/DepthFusion.h
@@ -41,7 +74,10 @@ set(HEADERS
   include/esvo_core/tools/TicToc.h
   include/esvo_core/tools/sobel.h
   include/esvo_core/tools/cayley.h
-  include/esvo_core/tools/params_helper.h)
+  include/esvo_core/tools/params_helper.h
+  include/esvo_core/core/camera_omni.h
+  include/esvo_core/core/keyframe_omni.h
+  include/esvo_core/core/utils.h)
 
 set(SOURCES
   src/core/DepthFusion.cpp
@@ -57,7 +93,10 @@ set(SOURCES
   src/container/ResidualItem.cpp
   src/tools/Visualization.cpp
   src/tools/sobel.cpp
-  src/tools/cayley.cpp)
+  src/tools/cayley.cpp
+  src/core/camera_omni.cpp
+  src/core/keyframe_omni.cpp
+  src/core/utils.cpp)
 
 cs_add_library(${PROJECT_NAME}_LIB ${SOURCES} ${HEADERS})
 
@@ -65,13 +104,13 @@ cs_add_library(${PROJECT_NAME}_LIB ${SOURCES} ${HEADERS})
 cs_add_executable(esvo_Mapping src/esvo_MappingNode.cpp
     src/esvo_Mapping.cpp include/esvo_core/esvo_Mapping.h)
 target_link_libraries(esvo_Mapping ${PROJECT_NAME}_LIB
-    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} yaml-cpp)
+    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${VISP_LIBRARIES} yaml-cpp)
 
 # Node esvo_Tracking
 cs_add_executable(esvo_Tracking src/esvo_TrackingNode.cpp
     src/esvo_Tracking.cpp include/esvo_core/esvo_Tracking.h)
 target_link_libraries(esvo_Tracking ${PROJECT_NAME}_LIB
-    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} yaml-cpp)
+    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${ORFCV_LIBRARIES} ${VISP_LIBRARIES} OgreMain yaml-cpp)
 
 # Node esvo_MVS (newly added in branch "mvs")
 cs_add_executable(esvo_MVStereo
@@ -79,4 +118,4 @@ cs_add_executable(esvo_MVStereo
     src/esvo_MVStereo.cpp
     include/esvo_core/esvo_MVStereo.h)
 target_link_libraries(esvo_MVStereo ${PROJECT_NAME}_LIB
-    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} yaml-cpp)
+    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${VISP_LIBRARIES} yaml-cpp)

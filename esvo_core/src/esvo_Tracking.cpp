@@ -5,8 +5,8 @@
 #include <tf/transform_broadcaster.h>
 #include <sys/stat.h>
 
-//#define ESVO_CORE_TRACKING_DEBUG
-//#define ESVO_CORE_TRACKING_DEBUG
+// #define ESVO_CORE_TRACKING_DEBUG
+// #define ESVO_CORE_TRACKING_LOG
 
 namespace esvo_core
 {
@@ -17,7 +17,7 @@ esvo_Tracking::esvo_Tracking(
   pnh_(nh_private),
   it_(nh),
   TS_left_sub_(nh_, "time_surface_left", 10),
-  TS_right_sub_(nh_, "time_surface_right", 10),
+  TS_right_sub_(nh_, "time_surface_left", 10),//Because Bobbin dataset only has one camera
   TS_sync_(ExactSyncPolicy(10), TS_left_sub_, TS_right_sub_),
   calibInfoDir_(tools::param(pnh_, "calibInfoDir", std::string(""))),
   camSysPtr_(new CameraSystem(calibInfoDir_, false)),
@@ -49,6 +49,8 @@ esvo_Tracking::esvo_Tracking(
   bSaveTrajectory_     = tools::param(pnh_, "SAVE_TRAJECTORY", false);
   bVisualizeTrajectory_ = tools::param(pnh_, "VISUALIZE_TRAJECTORY", true);
   resultPath_             = tools::param(pnh_, "PATH_TO_SAVE_TRAJECTORY", std::string());
+  bobbinModelPath_             = tools::param(pnh_, "PATH_TO_LOAD_3DModel", std::string());
+  camIntrinsicPath_            = tools::param(pnh_, "PATH_TO_CAMERA_INTRINSICS", std::string());
   nh_.setParam("/ESVO_SYSTEM_STATUS", ESVO_System_Status_);
 
   // online data callbacks
@@ -61,9 +63,64 @@ esvo_Tracking::esvo_Tracking(
   map_sub_ = nh_.subscribe("pointcloud", 0, &esvo_Tracking::refMapCallback, this);// local map in the ref view.
   stampedPose_sub_ = nh_.subscribe("stamped_pose", 0, &esvo_Tracking::stampedPoseCallback, this);// for accessing the pose of the ref view.
 
+
+  //orfcv
+  cam_omni = CameraOmni(YAML::LoadFile(camIntrinsicPath_));
+  std::cout<<"The camera intrinsic model is "<<cam_omni.xi<<" "<<cam_omni.px<< " "<< cam_omni.k[4]<<std::endl;
+  cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3], cam_omni.k[4]);
+  moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Related/Dependency/ogre-1.12.2/OgreConfigs/");
+  moteur->init(); 
+  moteur->loadPointCloud("objecttotrack", bobbinModelPath_);
+  moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
+  cMo = toHomogeneousMatrix(cam_omni.pose).inverse();
+  if (moteur->continueRendering())
+  {
+      ROS_INFO("tentative rendu");
+      moteur->display(&cMo);
+  }
+  else
+  {
+      ROS_INFO("probleme rendu");
+      exit(12);
+  }
+  kf_omni.kfresize(cam_omni.width, cam_omni.height);
+  moteur->getInternalImage(kf_omni.I);
+  moteur->getInternalImageZ(kf_omni.Idepth);
+  // vpImageConvert::convert(kf_omni.I, kf_I, true);
+  // vpImageConvert::convert(kf_omni.Idepth, kf_depth);
+  // std::cout<<"Width and height are"<<kf_I.rows<<" "<<kf_I.cols<<std::endl;
+  // image_gradient(kf_I, kf_grad);
+  // int gradCounter = 0;
+  // for (int i = 0; i < kf_grad.rows; i++)
+  // {
+  //     for (int j = 0; j < kf_grad.cols; j++)
+  //     {
+  //         // if ((kf.gradient.at<Vector2d>(i, j)[0] != 0 || kf.gradient.at<Vector2d>(i, j)[1] != 0) && (kf.depth.at<double>(i, j) > 0))
+  //         if (kf_grad.at<Vector2d>(i, j)[0] != 0 || kf_grad.at<Vector2d>(i, j)[1] != 0)
+  //         {
+  //             gradCounter++;
+  //             // std::cout << "i, j = " << i << " " << j << std::endl;
+  //             // cv::Vec3 test = kf.gradient.at<cv::Vec3>(i, j);
+  //             // std::cout << "Grad_x = " << kf.gradient.at<Vector2d>(i, j)[0] << "  Grad_y = " << kf.gradient.at<Vector2d>(i, j)[1] << std::endl;
+  //         }
+  //     }
+  // }
+  // std::cout<<"The pixels with gradient is "<<gradCounter<<std::endl;
+ 
+
+
+ 
   /*** For Visualization and Test ***/
   reprojMap_pub_left_  = it_.advertise("Reproj_Map_Left", 1);
   rpSolver_.setRegPublisher(&reprojMap_pub_left_);
+
+/////////////////////////////////////////////////
+  std_msgs::Header header;
+  header.stamp = ros::Time::now();
+  sensor_msgs::ImagePtr msg2 = cv_bridge::CvImage(header, "bgr8", kf_grad).toImageMsg();
+  reprojMap_pub_left_.publish(msg2);
+
+
 
   /*** Tracker ***/
   T_world_cur_ = Eigen::Matrix<double,4,4>::Identity();
@@ -199,6 +256,7 @@ void esvo_Tracking::TrackingLoop()
   }
 }
 
+//Transfer the depth map data to ref_ frame. The data source is refPCMAP_. tr is set to identity matrix
 bool
 esvo_Tracking::refDataTransferring()
 {
@@ -278,6 +336,13 @@ void esvo_Tracking::reset()
 /********************** Callback functions *****************************/
 void esvo_Tracking::refMapCallback(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
+  // cam_omni = CameraOmni(YAML::LoadFile(camIntrinsicPath_));
+  // std::cout<<"The camera intrinsic model is "<<cam_omni.xi<<" "<<cam_omni.px<< " "<< cam_omni.k[4]<<std::endl;
+  // cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3], cam_omni.k[4]);
+  // moteur = new gcOgre(cam, cam_omni.width, cam_omni.height);
+  // moteur->init(); 
+  // std::cout<<"The width and height are"<<cam_omni.width<<" "<<cam_omni.height<<std::endl;
+  // moteur->loadPointCloud("objecttotrack", bobbinModelPath_);
   std::lock_guard<std::mutex> lock(data_mutex_);
   pcl::PCLPointCloud2 pcl_pc;
   pcl_conversions::toPCL(*msg, pcl_pc);
@@ -337,7 +402,8 @@ esvo_Tracking::timeSurfaceCallback(
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
-
+  // std::cout<<"Left size "<<cv_ptr_left->image.size()<<std::endl;
+  // std::cout<<"Right size "<<cv_ptr_right->image.size()<<std::endl;
   // push back the most current TS.
   ros::Time t_new_ts = time_surface_left->header.stamp;
   TS_history_.emplace(t_new_ts, TimeSurfaceObservation(cv_ptr_left, cv_ptr_right, TS_id_, false));
@@ -461,4 +527,34 @@ esvo_Tracking::saveTrajectory(const std::string &resultDir)
   LOG(INFO) << "Saving trajectory to " << resultDir << ". Done !!!!!!.";
 }
 
+vpHomogeneousMatrix esvo_Tracking::toHomogeneousMatrix(double *s)
+{
+    vpHomogeneousMatrix mat;
+    vpTranslationVector vec(s[0], s[1], s[2]);
+    vpRotationMatrix rmat;
+
+    // double a = s.pose.orientation.x();
+    // double b = s.pose.orientation.y();
+    // double c = s.pose.orientation.z();
+    // double d = s.pose.orientation.w();
+    double a = s[3];
+    double b = s[4];
+    double c = s[5];
+    double d = s[6];
+    rmat[0][0] = a * a + b * b - c * c - d * d;
+    rmat[0][1] = 2 * b * c - 2 * a * d;
+    rmat[0][2] = 2 * a * c + 2 * b * d;
+
+    rmat[1][0] = 2 * a * d + 2 * b * c;
+    rmat[1][1] = a * a - b * b + c * c - d * d;
+    rmat[1][2] = 2 * c * d - 2 * a * b;
+
+    rmat[2][0] = 2 * b * d - 2 * a * c;
+    rmat[2][1] = 2 * a * b + 2 * c * d;
+    rmat[2][2] = a * a - b * b - c * c + d * d;
+
+    mat.buildFrom(vec, rmat);
+
+    return mat;
+}
 }// namespace esvo_core

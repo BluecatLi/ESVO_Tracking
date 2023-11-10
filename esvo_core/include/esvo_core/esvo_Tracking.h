@@ -31,6 +31,16 @@
 #include <pcl/point_types.h>
 #include <pcl_ros/point_cloud.h>
 
+//yufan added for generalizing omni camera model
+
+#include <ORFCV/gcOgre.h>
+#include <ORFCV/COmni.h>
+#include <visp/vpHomogeneousMatrix.h>
+#include <visp/vpImageConvert.h>
+#include <esvo_core/core/camera_omni.h>
+#include <esvo_core/core/keyframe_omni.h>
+#include <esvo_core/core/utils.h>
+
 namespace esvo_core
 {
 using namespace core;
@@ -121,6 +131,8 @@ class esvo_Tracking
   bool bSaveTrajectory_;
   bool bVisualizeTrajectory_;
   std::string resultPath_;
+  std::string bobbinModelPath_;
+  std::string camIntrinsicPath_;
 
   Eigen::Matrix<double, 4, 4> T_world_ref_;
   Eigen::Matrix<double, 4, 4> T_world_cur_;
@@ -131,7 +143,21 @@ class esvo_Tracking
   std::string ESVO_System_Status_;
   RegProblemConfig::Ptr rpConfigPtr_;
   RegProblemSolverLM rpSolver_;
+
+  //Yufan added for omni camera model
+  gcOgre *moteur;
+  CameraOmni cam_omni;
+  COmni *cam;
+  vpHomogeneousMatrix toHomogeneousMatrix(double *s);
+  vpHomogeneousMatrix c0Mo, cMo;
+  KeyframeOmni kf_omni;
+  cv::Mat kf_I, kf_depth, kf_grad, kf_gradient;
 };
+template <class Scalar, int M, int Options = 0>
+using Vector = Eigen::Matrix<Scalar, M, 1, Options>;
+template <class Scalar, int Options = 0>
+using Vector2 = Vector<Scalar, 2, Options>;
+using Vector2d = Vector2<double>;
 }
 
 

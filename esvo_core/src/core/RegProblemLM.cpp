@@ -175,6 +175,7 @@ RegProblemLM::thread(Job& job ) const
   }
 }
 
+// Is this a differentiation function?
 int RegProblemLM::df(const Eigen::Matrix<double,6,1>& x, Eigen::MatrixXd& fjac) const
 {
   if(x != Eigen::Matrix<double,6,1>::Zero())

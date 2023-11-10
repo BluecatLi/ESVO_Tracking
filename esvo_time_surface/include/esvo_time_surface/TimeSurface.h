@@ -60,7 +60,11 @@ public:
 
     EventQueue& eq = getEventQueue(x, y);
     if(eq.empty())
+    {
+      // std::cout<<"No queue"<<std::endl;
       return false;
+
+    }
 
     for(auto it = eq.rbegin(); it != eq.rend(); ++it)
     {
@@ -69,6 +73,9 @@ public:
       {
         *ev = *it;
         return true;
+      }
+      else{
+        // std::cout<<"Time diff is "<<(e.ts-t).toSec()<<std::endl;
       }
     }
     return false;
@@ -125,6 +132,7 @@ private:
   void syncCallback(const std_msgs::TimeConstPtr& msg);
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
   void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
+  void cameraInfoCallback_prophesee(const sensor_msgs::CameraInfo::ConstPtr& msg);
 
   // utils
   void clearEventQueue();
@@ -145,9 +153,13 @@ private:
   // online parameters
   bool bCamInfoAvailable_;
   bool bUse_Sim_Time_;  
+  int startTimeSec_;  
+  int startTimeNsec_;  
   cv::Size sensor_size_;
   ros::Time sync_time_;
   bool bSensorInitialized_;
+
+  bool bPropheseeUsed_ = false;
 
   // offline parameters
   double decay_ms_;

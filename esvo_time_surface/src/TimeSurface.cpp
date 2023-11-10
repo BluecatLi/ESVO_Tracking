@@ -5,7 +5,7 @@
 #include <glog/logging.h>
 #include <thread>
 
-//#define ESVO_TS_LOG
+// #define ESVO_TS_LOG
 
 namespace esvo_time_surface 
 {
@@ -14,13 +14,16 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
 {
   // setup subscribers and publishers
   event_sub_ = nh_.subscribe("events", 0, &TimeSurface::eventsCallback, this);
-  camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback, this);
+  camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback_prophesee, this);
+  // camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback, this);
   sync_topic_ = nh_.subscribe("sync", 1, &TimeSurface::syncCallback, this);
   image_transport::ImageTransport it_(nh_);
   time_surface_pub_ = it_.advertise("time_surface", 1);
 
   // parameters
   nh_private.param<bool>("use_sim_time", bUse_Sim_Time_, true);
+  nh_private.param<int>("start_time_sec", startTimeSec_, 0);
+  nh_private.param<int>("start_time_nsec", startTimeNsec_, 0);
   nh_private.param<bool>("ignore_polarity", ignore_polarity_, true);
   nh_private.param<double>("decay_ms", decay_ms_, 30);
   int TS_mode;
@@ -52,7 +55,7 @@ void TimeSurface::init(int width, int height)
 void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
 {
   std::lock_guard<std::mutex> lock(data_mutex_);
-
+  // std::cout<<sensor_size_.width<<std::endl;
   if(!bSensorInitialized_ || !bCamInfoAvailable_)
     return;
 
@@ -60,21 +63,30 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   const double decay_sec = decay_ms_ / 1000.0;
   cv::Mat time_surface_map;
   time_surface_map = cv::Mat::zeros(sensor_size_, CV_64F);
-
+  // std::cout<<"jajaja"<<std::endl;
+  ros::Time external_time;
+  if(bPropheseeUsed_)
+    external_time = external_sync_time;
+  else
+    external_time = external_sync_time;
   // Loop through all coordinates
   for(int y=0; y<sensor_size_.height; ++y)
   {
     for(int x=0; x<sensor_size_.width; ++x)
     {
       dvs_msgs::Event most_recent_event_at_coordXY_before_T;
-      if(pEventQueueMat_->getMostRecentEventBeforeT(x, y, external_sync_time, &most_recent_event_at_coordXY_before_T))
+      // std::cout<<y <<" "<<x<<std::endl;
+      if(pEventQueueMat_->getMostRecentEventBeforeT(x, y, external_time, &most_recent_event_at_coordXY_before_T))
       {
         const ros::Time& most_recent_stamp_at_coordXY = most_recent_event_at_coordXY_before_T.ts;
+        // std::cout<<"The time is "<<most_recent_stamp_at_coordXY.toSec()<<std::endl;
         if(most_recent_stamp_at_coordXY.toSec() > 0)
         {
-          const double dt = (external_sync_time - most_recent_stamp_at_coordXY).toSec();
+          const double dt = (external_time - most_recent_stamp_at_coordXY).toSec();
+          // std::cout<<"Dt is "<<dt<<std::endl;
           double polarity = (most_recent_event_at_coordXY_before_T.polarity) ? 1.0 : -1.0;
           double expVal = std::exp(-dt / decay_sec);
+          // double expVal = std::exp(0 / decay_sec);
           if(!ignore_polarity_)
             expVal *= polarity;
 
@@ -129,25 +141,32 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   // median blur
   if(median_blur_kernel_size_ > 0)
     cv::medianBlur(time_surface_map, time_surface_map, 2 * median_blur_kernel_size_ + 1);
-
   // Publish event image
   static cv_bridge::CvImage cv_image;
   cv_image.encoding = "mono8";
   cv_image.image = time_surface_map.clone();
 
-  if(time_surface_mode_ == FORWARD && time_surface_pub_.getNumSubscribers() > 0)
+  if(time_surface_mode_ == FORWARD && time_surface_pub_.getNumSubscribers() > 0 && !bPropheseeUsed_)
   {
     cv_image.header.stamp = external_sync_time;
     time_surface_pub_.publish(cv_image.toImageMsg());
   }
 
-  if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
+  if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0 && !bPropheseeUsed_)
   {
     cv_bridge::CvImage cv_image2;
     cv_image2.encoding = cv_image.encoding;
     cv_image2.header.stamp = external_sync_time;
     cv::remap(cv_image.image, cv_image2.image, undistort_map1_, undistort_map2_, CV_INTER_LINEAR);
     time_surface_pub_.publish(cv_image2.toImageMsg());
+  }
+
+  //yufan added 
+
+  if(time_surface_mode_ == BACKWARD && bPropheseeUsed_ == true)
+  {
+    cv_image.header.stamp = external_sync_time;
+    time_surface_pub_.publish(cv_image.toImageMsg());
   }
 }
 
@@ -292,11 +311,16 @@ void TimeSurface::thread(Job &job)
 
 void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
 {
-  if(bUse_Sim_Time_)
-    sync_time_ = ros::Time::now();
-  else
-    sync_time_ = msg->data;
-
+  ros::Duration time_elapse(0.52);
+  // if(bUse_Sim_Time_)
+  //   sync_time_ = ros::Time::now();
+  //   // sync_time_ = ros::Time::now()+time_elapse;
+  // else
+  //   sync_time_ = msg->data;
+  ros::Time tmp = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
+  std::cout<<"sync time = "<<sync_time_<<std::endl;
+  // std::cout<<tmp<<std::endl;
+  // std::cout<<" "<<std::endl;
 #ifdef ESVO_TS_LOG
     TicToc tt;
     tt.tic();
@@ -322,6 +346,7 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
       camera_matrix_.at<double>(cv::Point(i, j)) = msg->K[i+j*3];
 
   distortion_model_ = msg->distortion_model;
+  // std::cout<<msg->distortion_model<<std::endl;
   dist_coeffs_ = cv::Mat(msg->D.size(), 1, CV_64F);
   for (int i = 0; i < msg->D.size(); i++)
     dist_coeffs_.at<double>(i) = msg->D[i];
@@ -400,8 +425,22 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
   ROS_INFO("Undistorted-Rectified Look-Up Table has been computed.");
 }
 
+//modified from 
+void TimeSurface::cameraInfoCallback_prophesee(const sensor_msgs::CameraInfo::ConstPtr& msg)
+{
+  if(bCamInfoAvailable_)
+    return;
+
+  cv::Size sensor_size(msg->width, msg->height);
+  bCamInfoAvailable_ = true;
+  bPropheseeUsed_ = true;
+  ROS_INFO("Undistorted-Rectified Look-Up Table has been computed.");
+}
+
+
 void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 {
+  // std::cout<<"bulubulu"<<std::endl;
   std::lock_guard<std::mutex> lock(data_mutex_);
 
   if(!bSensorInitialized_)
@@ -409,6 +448,8 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
   for(const dvs_msgs::Event& e : msg->events)
   {
+    // std::cout<<"Time diff is "<<ros::Time::now().toSec() - e.ts.toSec()<<std::endl;
+    // std::cout<<"Event time is "<< e.ts.toSec()<<"Current time is "<< ros::Time::now().toSec()<<std::endl;
     events_.push_back(e);
     int i = events_.size() - 2;
     while(i >= 0 && events_[i].ts > e.ts)
@@ -421,12 +462,21 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     const dvs_msgs::Event& last_event = events_.back();
     pEventQueueMat_->insertEvent(last_event);
   }
+  dvs_msgs::Event& ttevent = events_.back();
+  std::cout<<"Last event timestamp is "<<ttevent.ts<<std::endl;
+  // std::cout<<"Event queue size is "<<events_.size()<<std::endl;
   clearEventQueue();
+
+  //Yufan added for debug
+  sync_time_ = ttevent.ts;
+  // if(NUM_THREAD_TS == 1)
+  //   createTimeSurfaceAtTime(sync_time_);
+
 }
 
 void TimeSurface::clearEventQueue()
 {
-  static constexpr size_t MAX_EVENT_QUEUE_LENGTH = 5000000;
+  static constexpr size_t MAX_EVENT_QUEUE_LENGTH = 10;
   if (events_.size() > MAX_EVENT_QUEUE_LENGTH)
   {
     size_t remove_events = events_.size() - MAX_EVENT_QUEUE_LENGTH;

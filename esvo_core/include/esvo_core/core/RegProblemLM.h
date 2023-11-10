@@ -56,6 +56,7 @@ struct RegProblemConfig
   size_t MAX_ITERATION_;
 };
 
+//The reference frame defination. Includes a timestamp t, the map in PointXYZ style, the transformation matrix tr
 struct RefFrame
 {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

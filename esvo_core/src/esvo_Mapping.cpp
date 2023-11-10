@@ -18,8 +18,8 @@
 #include <algorithm>
 #include <utility>
 
-//#define ESVO_CORE_MAPPING_DEBUG
-//#define ESVO_CORE_MAPPING_LOG
+// #define ESVO_CORE_MAPPING_DEBUG
+// #define ESVO_CORE_MAPPING_LOG
 
 namespace esvo_core
 {
@@ -886,10 +886,13 @@ void esvo_Mapping::publishMappingResults(
   visualizor_.plot_map(depthMapPtr, tools::CostMap, costImage, cost_vis_threshold_, 0.0, cost_vis_threshold_);
   publishImage(costImage, t, costMap_pub_);
 
-  if(ESVO_System_Status_ == "INITIALIZATION")
+  if(ESVO_System_Status_ == "INITIALIZATION"){
     publishPointCloud(depthMapPtr, tr, t);
+    std::cout<<"Initialization"<<std::endl;
+  }
   if(ESVO_System_Status_ == "WORKING")
   {
+    // std::cout<<FusionStrategy_<<std::endl;
     if(FusionStrategy_ == "CONST_FRAMES")
     {
       if(dqvDepthPoints_.size() == maxNumFusionFrames_)
@@ -900,6 +903,7 @@ void esvo_Mapping::publishMappingResults(
       size_t numFusionPoints = 0;
       for(size_t n = 0; n < dqvDepthPoints_.size(); n++)
         numFusionPoints += dqvDepthPoints_[n].size();
+      // std::cout<<numFusionPoints<<"  "<<maxNumFusionPoints_<<std::endl;
       if(numFusionPoints > 0.5 * maxNumFusionPoints_)
         publishPointCloud(depthMapPtr, tr, t);
     }
@@ -911,6 +915,7 @@ void esvo_Mapping::publishPointCloud(
   Transformation & tr,
   ros::Time& t)
 {
+  // std::cout<<"Bulabulaba"<<std::endl;
   sensor_msgs::PointCloud2::Ptr pc_to_publish (new sensor_msgs::PointCloud2);
   Eigen::Matrix<double, 4, 4> T_world_result = tr.getTransformationMatrix();
 
