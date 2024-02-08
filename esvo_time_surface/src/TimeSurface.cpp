@@ -37,6 +37,8 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   if(pEventQueueMat_)
     pEventQueueMat_->clear();
   sensor_size_ = cv::Size(0,0);
+
+  // sync_time_ = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
 }
 
 TimeSurface::~TimeSurface()
@@ -59,6 +61,7 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   if(!bSensorInitialized_ || !bCamInfoAvailable_)
     return;
 
+  // std::cout<<"jajaja"<<std::endl;
   // create exponential-decayed Time Surface map.
   const double decay_sec = decay_ms_ / 1000.0;
   cv::Mat time_surface_map;
@@ -163,7 +166,7 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
 
   //yufan added 
 
-  if(time_surface_mode_ == BACKWARD && bPropheseeUsed_ == true)
+  if(time_surface_mode_ == BACKWARD && bPropheseeUsed_)
   {
     cv_image.header.stamp = external_sync_time;
     time_surface_pub_.publish(cv_image.toImageMsg());
@@ -312,13 +315,22 @@ void TimeSurface::thread(Job &job)
 void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
 {
   ros::Duration time_elapse(0.52);
-  // if(bUse_Sim_Time_)
-  //   sync_time_ = ros::Time::now();
+  if(bUse_Sim_Time_)
+    sync_time_ = ros::Time::now();
   //   // sync_time_ = ros::Time::now()+time_elapse;
   // else
-  //   sync_time_ = msg->data;
-  ros::Time tmp = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
-  std::cout<<"sync time = "<<sync_time_<<std::endl;
+  // if (events_.size() > 1){
+  //   sync_time_ = events_.back().ts;
+  if(events_.size() < 1)
+    return;
+  // if((events_.back().ts - sync_time_).toSec() < 0.01)
+  //   return;
+  ros::Duration delta_t(0.01);
+  // sync_time_ = sync_time_ + delta_t;
+  std::cout<<"Last event time is      "<<events_.back().ts<<std::endl;
+  std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
+  // ros::Time tmp = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
+  // std::cout<<"sync time = "<<sync_time_<<std::endl;
   // std::cout<<tmp<<std::endl;
   // std::cout<<" "<<std::endl;
 #ifdef ESVO_TS_LOG
@@ -329,9 +341,9 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
       createTimeSurfaceAtTime(sync_time_);
     if(NUM_THREAD_TS > 1)
       createTimeSurfaceAtTime_hyperthread(sync_time_);
-#ifdef ESVO_TS_LOG
-    LOG(INFO) << "Time Surface map's creation takes: " << tt.toc() << " ms.";
-#endif
+// #ifdef ESVO_TS_LOG
+//     LOG(INFO) << "Time Surface map's creation takes: " << tt.toc() << " ms.";
+// #endif
 }
 
 void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
@@ -462,13 +474,15 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     const dvs_msgs::Event& last_event = events_.back();
     pEventQueueMat_->insertEvent(last_event);
   }
-  dvs_msgs::Event& ttevent = events_.back();
-  std::cout<<"Last event timestamp is "<<ttevent.ts<<std::endl;
+
+  // dvs_msgs::Event& ttevent = events_.back();
+  // std::cout<<"Last event timestamp is "<<events_.back().ts<<std::endl;
+  // std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
   // std::cout<<"Event queue size is "<<events_.size()<<std::endl;
   clearEventQueue();
 
   //Yufan added for debug
-  sync_time_ = ttevent.ts;
+  // sync_time_ = ttevent.ts;
   // if(NUM_THREAD_TS == 1)
   //   createTimeSurfaceAtTime(sync_time_);
 
