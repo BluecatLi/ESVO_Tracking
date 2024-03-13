@@ -91,6 +91,7 @@ class esvo_Tracking
   ros::Subscriber events_left_sub_;
   ros::Subscriber map_sub_;
   message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_, TS_right_sub_;
+  // message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_;
   ros::Subscriber stampedPose_sub_;
   image_transport::Publisher reprojMap_pub_left_;
 

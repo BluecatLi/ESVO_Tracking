@@ -16,8 +16,8 @@ esvo_Tracking::esvo_Tracking(
   nh_(nh),
   pnh_(nh_private),
   it_(nh),
-  TS_left_sub_(nh_, "time_surface_left", 10),
-  TS_right_sub_(nh_, "time_surface_left", 10),//Because Bobbin dataset only has one camera
+  TS_left_sub_(nh_, "time_surface_left", 10),//Because Bobbin dataset only has one camera
+  TS_right_sub_(nh_, "time_surface_left", 10),
   TS_sync_(ExactSyncPolicy(10), TS_left_sub_, TS_right_sub_),
   calibInfoDir_(tools::param(pnh_, "calibInfoDir", std::string(""))),
   camSysPtr_(new CameraSystem(calibInfoDir_, false)),
@@ -402,8 +402,7 @@ esvo_Tracking::timeSurfaceCallback(
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
-  // std::cout<<"Left size "<<cv_ptr_left->image.size()<<std::endl;
-  // std::cout<<"Right size "<<cv_ptr_right->image.size()<<std::endl;
+
   // push back the most current TS.
   ros::Time t_new_ts = time_surface_left->header.stamp;
   TS_history_.emplace(t_new_ts, TimeSurfaceObservation(cv_ptr_left, cv_ptr_right, TS_id_, false));
