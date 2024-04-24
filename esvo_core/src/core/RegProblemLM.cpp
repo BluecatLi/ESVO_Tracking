@@ -47,6 +47,8 @@ void RegProblemLM::setProblem(RefFrame* ref, CurFrame* cur, bool bComputeGrad)
     bool bStochasticSampling = true;
     if (bStochasticSampling)
       std::swap(ref->vPointXYZPtr_[i], ref->vPointXYZPtr_[i + rand() % (ref->vPointXYZPtr_.size() - i)]);
+
+    // Transforms the 3D point coordinate from world frame to reference frame
     Eigen::Vector3d p_tmp((double) ref->vPointXYZPtr_[i]->x,
                           (double) ref->vPointXYZPtr_[i]->y,
                           (double) ref->vPointXYZPtr_[i]->z);

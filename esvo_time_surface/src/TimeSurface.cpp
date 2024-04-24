@@ -328,7 +328,7 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
   //   return;
   // ros::Duration delta_t(0.01);
   // sync_time_ = sync_time_ + delta_t;
-  sync_time_ = events_.back().ts;
+  // sync_time_ = events_.back().ts;
   // std::cout<<"Last event time is      "<<events_.back().ts<<std::endl;
   std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
   // ros::Time tmp = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
@@ -474,6 +474,7 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     events_[i+1] = e;
 
     const dvs_msgs::Event& last_event = events_.back();
+    // Use a vector instead
     pEventQueueMat_->insertEvent(last_event);
   }
 
