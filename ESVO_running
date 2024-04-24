@@ -1,0 +1,11 @@
+$ catkin build esvo_time_surface esvo_core
+cd catkin_ws
+$ source ~/catkin_ws/devel/setup.bash
+If you want to view the result of time surface generation, first modify the file path in esvo_time_surface/launch/rosbag_launcher/bobbin/bobbin_omni1.launch and then run
+$ roslaunch esvo_time_surface bobbin_time_surface.launch
+And open another terminal, run
+$ roslaunch esvo_time_surface bobbin_omni1.launch
+
+If you want to run the tracking, open a terminal and run
+$ roslaunch esvo_core system_bobbin.launch
+
