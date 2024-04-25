@@ -14,8 +14,8 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
 {
   // setup subscribers and publishers
   event_sub_ = nh_.subscribe("events", 0, &TimeSurface::eventsCallback, this);
-  camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback_prophesee, this);
-  // camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback, this);
+  // camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback_prophesee, this);
+  camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback, this);
   sync_topic_ = nh_.subscribe("sync", 1, &TimeSurface::syncCallback, this);
   image_transport::ImageTransport it_(nh_);
   time_surface_pub_ = it_.advertise("time_surface", 1);
@@ -361,6 +361,7 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
 
   distortion_model_ = msg->distortion_model;
   // std::cout<<msg->distortion_model<<std::endl;
+  std::cout<<"width and height "<<msg->width<<" "<<msg->height<<std::endl;
   dist_coeffs_ = cv::Mat(msg->D.size(), 1, CV_64F);
   for (int i = 0; i < msg->D.size(); i++)
     dist_coeffs_.at<double>(i) = msg->D[i];
@@ -374,7 +375,7 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
   for (int i = 0; i < 4; i++)
     for (int j = 0; j < 3; j++)
       projection_matrix_.at<double>(cv::Point(i, j)) = msg->P[i+j*4];
-
+  std::cout<<"Dis model is "<<distortion_model_<<std::endl;
   if(distortion_model_ == "equidistant")
   {
     cv::fisheye::initUndistortRectifyMap(camera_matrix_, dist_coeffs_,
@@ -389,6 +390,7 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
                                 rectification_matrix_, projection_matrix_,
                                 sensor_size, CV_32FC1, undistort_map1_, undistort_map2_);
     bCamInfoAvailable_ = true;
+    bPropheseeUsed_ = true;
     ROS_INFO("Camera information is loaded (Distortion model %s).", distortion_model_.c_str());
   }
   else
