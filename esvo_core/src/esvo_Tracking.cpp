@@ -115,6 +115,7 @@ esvo_Tracking::esvo_Tracking(
   rpSolver_.setRegPublisher(&reprojMap_pub_left_);
 
 /////////////////////////////////////////////////
+  //Yufan add this 
   std_msgs::Header header;
   header.stamp = ros::Time::now();
   sensor_msgs::ImagePtr msg2 = cv_bridge::CvImage(header, "bgr8", kf_grad).toImageMsg();

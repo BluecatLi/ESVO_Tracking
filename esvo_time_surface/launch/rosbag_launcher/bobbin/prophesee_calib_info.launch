@@ -1,0 +1,13 @@
+<launch>
+  <!-- Publish prophesee camera calibration on predefined ROS topics -->
+  <node name="prophesee_omni_info_pub" pkg="rostopic" type="rostopic"
+    args="pub /prophesee/camera_info sensor_msgs/CameraInfo
+    '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
+    height: 480, width: 640, distortion_model: 'plumb_bob',
+    D: [-0.1241178005, 0.3278565727, -0.07048237578, 0.00155174169],
+    K: [604.0080845, 0, 298.0229626, 0, 604.2488065, 198.1693614, 0, 0, 1],
+    R: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+    P: [604.0080845, 0, 298.0229626, 0, 0, 604.2488065, 198.1693614, 0, 0, 0, 1, 0],
+    binning_x: 0, binning_y: 0,
+    roi: {x_offset: 0, y_offset: 0, height: 0, width: 0, do_rectify: false} }' -r 1000" />
+</launch>

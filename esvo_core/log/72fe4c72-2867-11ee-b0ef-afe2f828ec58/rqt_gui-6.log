@@ -1,0 +1,32 @@
+[rospy.client][INFO] 2023-07-22 18:20:20,740: init_node, name[/rqt_gui], pid[19534]
+[xmlrpc][INFO] 2023-07-22 18:20:20,740: XML-RPC server binding to 0.0.0.0:0
+[xmlrpc][INFO] 2023-07-22 18:20:20,740: Started XML-RPC server [http://yufan-Prestige-15-A12UD:39393/]
+[rospy.impl.masterslave][INFO] 2023-07-22 18:20:20,740: _ready: http://yufan-Prestige-15-A12UD:39393/
+[rospy.init][INFO] 2023-07-22 18:20:20,740: ROS Slave URI: [http://yufan-Prestige-15-A12UD:39393/]
+[rospy.registration][INFO] 2023-07-22 18:20:20,740: Registering with master node http://localhost:11311
+[xmlrpc][INFO] 2023-07-22 18:20:20,740: xml rpc node: starting XML-RPC server
+[rospy.init][INFO] 2023-07-22 18:20:20,841: registered with master
+[rospy.rosout][INFO] 2023-07-22 18:20:20,841: initializing /rosout core topic
+[rospy.rosout][INFO] 2023-07-22 18:20:20,842: connected to core topic /rosout
+[rospy.simtime][INFO] 2023-07-22 18:20:20,842: initializing /clock core topic
+[rospy.simtime][INFO] 2023-07-22 18:20:20,843: connected to core topic /clock
+[rospy.internal][INFO] 2023-07-22 18:20:21,141: topic[/rosout] adding connection to [/rosout], count 0
+[rospy.core][INFO] 2023-07-22 18:20:24,640: signal_shutdown [atexit]
+[rospy.internal][INFO] 2023-07-22 18:20:24,642: topic[/rosout] removing connection to /rosout
+[rospy.impl.masterslave][INFO] 2023-07-22 18:20:24,642: atexit
+[rospy.client][INFO] 2023-07-22 18:21:58,108: init_node, name[/rqt_gui], pid[19814]
+[xmlrpc][INFO] 2023-07-22 18:21:58,109: XML-RPC server binding to 0.0.0.0:0
+[xmlrpc][INFO] 2023-07-22 18:21:58,109: Started XML-RPC server [http://yufan-Prestige-15-A12UD:37607/]
+[rospy.init][INFO] 2023-07-22 18:21:58,109: ROS Slave URI: [http://yufan-Prestige-15-A12UD:37607/]
+[rospy.impl.masterslave][INFO] 2023-07-22 18:21:58,109: _ready: http://yufan-Prestige-15-A12UD:37607/
+[rospy.registration][INFO] 2023-07-22 18:21:58,110: Registering with master node http://localhost:11311
+[xmlrpc][INFO] 2023-07-22 18:21:58,110: xml rpc node: starting XML-RPC server
+[rospy.init][INFO] 2023-07-22 18:21:58,209: registered with master
+[rospy.rosout][INFO] 2023-07-22 18:21:58,210: initializing /rosout core topic
+[rospy.rosout][INFO] 2023-07-22 18:21:58,211: connected to core topic /rosout
+[rospy.simtime][INFO] 2023-07-22 18:21:58,212: initializing /clock core topic
+[rospy.simtime][INFO] 2023-07-22 18:21:58,215: connected to core topic /clock
+[rospy.internal][INFO] 2023-07-22 18:21:58,468: topic[/rosout] adding connection to [/rosout], count 0
+[rospy.core][INFO] 2023-07-22 18:22:08,548: signal_shutdown [atexit]
+[rospy.internal][INFO] 2023-07-22 18:22:08,550: topic[/rosout] removing connection to /rosout
+[rospy.impl.masterslave][INFO] 2023-07-22 18:22:08,550: atexit

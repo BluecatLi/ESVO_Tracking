@@ -1,0 +1,22 @@
+[rospy.client][INFO] 2023-07-22 18:20:20,280: init_node, name[/global_timer], pid[19531]
+[xmlrpc][INFO] 2023-07-22 18:20:20,280: XML-RPC server binding to 0.0.0.0:0
+[xmlrpc][INFO] 2023-07-22 18:20:20,280: Started XML-RPC server [http://yufan-Prestige-15-A12UD:41653/]
+[rospy.impl.masterslave][INFO] 2023-07-22 18:20:20,280: _ready: http://yufan-Prestige-15-A12UD:41653/
+[rospy.registration][INFO] 2023-07-22 18:20:20,280: Registering with master node http://localhost:11311
+[rospy.init][INFO] 2023-07-22 18:20:20,281: ROS Slave URI: [http://yufan-Prestige-15-A12UD:41653/]
+[xmlrpc][INFO] 2023-07-22 18:20:20,281: xml rpc node: starting XML-RPC server
+[rospy.init][INFO] 2023-07-22 18:20:20,281: registered with master
+[rospy.core][INFO] 2023-07-22 18:20:20,520: signal_shutdown [signal-2]
+[rospy.impl.masterslave][INFO] 2023-07-22 18:20:20,521: signal-2
+[rospy.core][INFO] 2023-07-22 18:20:21,121: signal_shutdown [atexit]
+[rospy.client][INFO] 2023-07-22 18:21:57,652: init_node, name[/global_timer], pid[19811]
+[xmlrpc][INFO] 2023-07-22 18:21:57,652: XML-RPC server binding to 0.0.0.0:0
+[xmlrpc][INFO] 2023-07-22 18:21:57,652: Started XML-RPC server [http://yufan-Prestige-15-A12UD:42399/]
+[rospy.impl.masterslave][INFO] 2023-07-22 18:21:57,652: _ready: http://yufan-Prestige-15-A12UD:42399/
+[rospy.init][INFO] 2023-07-22 18:21:57,652: ROS Slave URI: [http://yufan-Prestige-15-A12UD:42399/]
+[rospy.registration][INFO] 2023-07-22 18:21:57,652: Registering with master node http://localhost:11311
+[xmlrpc][INFO] 2023-07-22 18:21:57,652: xml rpc node: starting XML-RPC server
+[rospy.init][INFO] 2023-07-22 18:21:57,753: registered with master
+[rospy.core][INFO] 2023-07-22 18:21:57,899: signal_shutdown [signal-2]
+[rospy.impl.masterslave][INFO] 2023-07-22 18:21:57,900: signal-2
+[rospy.core][INFO] 2023-07-22 18:21:58,500: signal_shutdown [atexit]

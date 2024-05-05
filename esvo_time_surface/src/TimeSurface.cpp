@@ -361,7 +361,7 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
 
   distortion_model_ = msg->distortion_model;
   // std::cout<<msg->distortion_model<<std::endl;
-  std::cout<<"width and height "<<msg->width<<" "<<msg->height<<std::endl;
+  // std::cout<<"width and height "<<msg->width<<" "<<msg->height<<std::endl;
   dist_coeffs_ = cv::Mat(msg->D.size(), 1, CV_64F);
   for (int i = 0; i < msg->D.size(); i++)
     dist_coeffs_.at<double>(i) = msg->D[i];
@@ -375,7 +375,7 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
   for (int i = 0; i < 4; i++)
     for (int j = 0; j < 3; j++)
       projection_matrix_.at<double>(cv::Point(i, j)) = msg->P[i+j*4];
-  std::cout<<"Dis model is "<<distortion_model_<<std::endl;
+  // std::cout<<"Dis model is "<<distortion_model_<<std::endl;
   if(distortion_model_ == "equidistant")
   {
     cv::fisheye::initUndistortRectifyMap(camera_matrix_, dist_coeffs_,
