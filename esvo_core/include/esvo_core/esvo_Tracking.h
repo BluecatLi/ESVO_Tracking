@@ -90,8 +90,8 @@ class esvo_Tracking
   // subscribers and publishers
   ros::Subscriber events_left_sub_;
   ros::Subscriber map_sub_;
-  message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_, TS_right_sub_;
-  // message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_;
+  // message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_, TS_right_sub_;
+  message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_;
   ros::Subscriber stampedPose_sub_;
   image_transport::Publisher reprojMap_pub_left_;
 
@@ -132,7 +132,7 @@ class esvo_Tracking
   bool bSaveTrajectory_;
   bool bVisualizeTrajectory_;
   std::string resultPath_;
-  std::string bobbinModelPath_;
+  std::string evsModelPath_;
   std::string camIntrinsicPath_;
 
   Eigen::Matrix<double, 4, 4> T_world_ref_;

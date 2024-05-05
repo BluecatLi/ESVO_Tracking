@@ -168,7 +168,9 @@ void CameraSystem::computeBaseline()
 void CameraSystem::loadCalibInfo(const std::string &cameraSystemDir, bool bPrintCalibInfo)
 {
   const std::string left_cam_calib_dir(cameraSystemDir + "/left.yaml");
-  const std::string right_cam_calib_dir(cameraSystemDir + "/right.yaml");
+  // Yufan only have 1 camera so we use left to initialize both
+  // const std::string right_cam_calib_dir(cameraSystemDir + "/right.yaml");
+  const std::string right_cam_calib_dir(cameraSystemDir + "/left.yaml");
   YAML::Node leftCamCalibInfo = YAML::LoadFile(left_cam_calib_dir);
   YAML::Node rightCamCalibInfo = YAML::LoadFile(right_cam_calib_dir);
 

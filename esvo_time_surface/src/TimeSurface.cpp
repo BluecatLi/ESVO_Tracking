@@ -149,14 +149,14 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   cv_image.encoding = "mono8";
   cv_image.image = time_surface_map.clone();
 
-  cv::imwrite("/home/yufan/Data/experiments/ESVO/TS.png", time_surface_map);
-  if(time_surface_mode_ == FORWARD && time_surface_pub_.getNumSubscribers() > 0 && !bPropheseeUsed_)
+  // cv::imwrite("/home/yufan/Data/experiments/ESVO/TS.png", time_surface_map);
+  if(time_surface_mode_ == FORWARD && time_surface_pub_.getNumSubscribers() > 0)
   {
     cv_image.header.stamp = external_sync_time;
     time_surface_pub_.publish(cv_image.toImageMsg());
   }
 
-  if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0 && !bPropheseeUsed_)
+  if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
   {
     cv_bridge::CvImage cv_image2;
     cv_image2.encoding = cv_image.encoding;
@@ -167,11 +167,11 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
 
   //yufan added 
 
-  if(time_surface_mode_ == BACKWARD && bPropheseeUsed_)
-  {
-    cv_image.header.stamp = external_sync_time;
-    time_surface_pub_.publish(cv_image.toImageMsg());
-  }
+  // if(time_surface_mode_ == BACKWARD && bPropheseeUsed_)
+  // {
+  //   cv_image.header.stamp = external_sync_time;
+  //   time_surface_pub_.publish(cv_image.toImageMsg());
+  // }
 }
 
 void TimeSurface::createTimeSurfaceAtTime_hyperthread(const ros::Time& external_sync_time)
@@ -339,7 +339,7 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
     TicToc tt;
     tt.tic();
 #endif
-    if(NUM_THREAD_TS == 1)
+    if(NUM_THREAD_TS == 1 && events_.back().ts > sync_time_)
       createTimeSurfaceAtTime(sync_time_);
     if(NUM_THREAD_TS > 1)
       createTimeSurfaceAtTime_hyperthread(sync_time_);
@@ -395,7 +395,7 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
   }
   else
   {
-    ROS_ERROR_ONCE("Distortion model %s is not supported.", distortion_model_.c_str());
+    ROS_ERROR_ONCE("Distortion model here %s is not supported.", distortion_model_.c_str());
     bCamInfoAvailable_ = false;
     return;
   }

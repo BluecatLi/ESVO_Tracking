@@ -17,8 +17,8 @@ esvo_Tracking::esvo_Tracking(
   pnh_(nh_private),
   it_(nh),
   TS_left_sub_(nh_, "time_surface_left", 10),//Because Bobbin dataset only has one camera
-  TS_right_sub_(nh_, "time_surface_left", 10),
-  TS_sync_(ExactSyncPolicy(10), TS_left_sub_, TS_right_sub_),
+  // TS_right_sub_(nh_, "time_surface_left", 10),
+  TS_sync_(ExactSyncPolicy(10), TS_left_sub_, TS_left_sub_),
   calibInfoDir_(tools::param(pnh_, "calibInfoDir", std::string(""))),
   camSysPtr_(new CameraSystem(calibInfoDir_, false)),
   rpConfigPtr_(new RegProblemConfig(
@@ -49,7 +49,7 @@ esvo_Tracking::esvo_Tracking(
   bSaveTrajectory_     = tools::param(pnh_, "SAVE_TRAJECTORY", false);
   bVisualizeTrajectory_ = tools::param(pnh_, "VISUALIZE_TRAJECTORY", true);
   resultPath_             = tools::param(pnh_, "PATH_TO_SAVE_TRAJECTORY", std::string());
-  bobbinModelPath_             = tools::param(pnh_, "PATH_TO_LOAD_3DModel", std::string());
+  evsModelPath_             = tools::param(pnh_, "PATH_TO_LOAD_3DModel", std::string());
   camIntrinsicPath_            = tools::param(pnh_, "PATH_TO_CAMERA_INTRINSICS", std::string());
   nh_.setParam("/ESVO_SYSTEM_STATUS", ESVO_System_Status_);
 
@@ -70,7 +70,7 @@ esvo_Tracking::esvo_Tracking(
   cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3], cam_omni.k[4]);
   moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Related/Dependency/ogre-1.12.2/OgreConfigs/");
   moteur->init(); 
-  moteur->loadPointCloud("objecttotrack", bobbinModelPath_);
+  moteur->loadPointCloud("objecttotrack", evsModelPath_);
   moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
   cMo = toHomogeneousMatrix(cam_omni.pose).inverse();
   if (moteur->continueRendering())
@@ -86,6 +86,8 @@ esvo_Tracking::esvo_Tracking(
   kf_omni.kfresize(cam_omni.width, cam_omni.height);
   moteur->getInternalImage(kf_omni.I);
   moteur->getInternalImageZ(kf_omni.Idepth);
+
+  // std::cout<<"The width you want is "<<camSysPtr_->cam_left_ptr_->width_<<std::endl;
   // vpImageConvert::convert(kf_omni.I, kf_I, true);
   // vpImageConvert::convert(kf_omni.Idepth, kf_depth);
   // std::cout<<"Width and height are"<<kf_I.rows<<" "<<kf_I.cols<<std::endl;
