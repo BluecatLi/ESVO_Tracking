@@ -67,6 +67,7 @@ class esvo_Tracking
   void timeSurfaceCallback(
     const sensor_msgs::ImageConstPtr& time_surface_left,
     const sensor_msgs::ImageConstPtr& time_surface_right);
+  void pointsetCallback(const sensor_msgs::ImageConstPtr& point_set);
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
 
   // results
@@ -90,10 +91,13 @@ class esvo_Tracking
   // subscribers and publishers
   ros::Subscriber events_left_sub_;
   ros::Subscriber map_sub_;
-  // message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_, TS_right_sub_;
-  message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_;
+  ros::Subscriber Point_set_sub_;
+  message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_, TS_right_sub_;
+  // message_filters::Subscriber<sensor_msgs::Image> TS_left_sub_;
   ros::Subscriber stampedPose_sub_;
   image_transport::Publisher reprojMap_pub_left_;
+  // yufan added
+  image_transport::Publisher pointSet_pub_;
 
   // publishers
   ros::Publisher pose_pub_, path_pub_;
@@ -153,6 +157,7 @@ class esvo_Tracking
   vpHomogeneousMatrix c0Mo, cMo;
   KeyframeOmni kf_omni;
   cv::Mat kf_I, kf_depth, kf_grad, kf_gradient;
+  cv::Mat pointSet;
 };
 template <class Scalar, int M, int Options = 0>
 using Vector = Eigen::Matrix<Scalar, M, 1, Options>;

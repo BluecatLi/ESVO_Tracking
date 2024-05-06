@@ -7,6 +7,7 @@
     <remap from="image" to="/davis/left/image_raw" />
     <remap from="camera_info" to="/prophesee/camera_info" />
     <remap from="time_surface" to="TS_left" />
+    <remap from="point_set" to="Point_Set" />
 
     <rosparam command="load" file="$(find esvo_time_surface)/cfg/parameters.yaml" />
   </node>
@@ -27,6 +28,7 @@
     <remap from="gt_pose" to="/optitrack/davis_stereo" />
     <remap from="events_left" to="/prophesee/camera/cd_events_buffer" />
     <remap from="pointcloud" to="/esvo_mapping/pointcloud_local" />
+    <remap from="point_set" to="/Point_Set" />
 
     <rosparam param="dvs_frame_id">"dvs"</rosparam>
     <rosparam param="world_frame_id">"map"</rosparam>

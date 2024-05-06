@@ -19,6 +19,7 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   sync_topic_ = nh_.subscribe("sync", 1, &TimeSurface::syncCallback, this);
   image_transport::ImageTransport it_(nh_);
   time_surface_pub_ = it_.advertise("time_surface", 1);
+  pointSet_pub_ = it_.advertise("point_set", 1);
 
   // parameters
   nh_private.param<bool>("use_sim_time", bUse_Sim_Time_, true);
@@ -37,8 +38,10 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   if(pEventQueueMat_)
     pEventQueueMat_->clear();
   sensor_size_ = cv::Size(0,0);
+  
 
   sync_time_ = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
+  pointSet = cv::imread("/home/yufan/Data/experiments/ESVO/EVS/edgemap.png", 0);
 }
 
 TimeSurface::~TimeSurface()
@@ -131,6 +134,8 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
           } // forward
         }
       } // a most recent event is available
+      // std::cout<<pointSet.at<unsigned char>(y,x)<<std::endl;
+
     }// loop x
   }// loop y
 
@@ -140,6 +145,7 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   else
     time_surface_map = 255.0 * time_surface_map;
   time_surface_map.convertTo(time_surface_map, CV_8U);
+  // pointSet.convertTo(pointSet, CV_8U);
 
   // median blur
   if(median_blur_kernel_size_ > 0)
@@ -154,17 +160,24 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   {
     cv_image.header.stamp = external_sync_time;
     time_surface_pub_.publish(cv_image.toImageMsg());
+
   }
 
   if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
   {
-    cv_bridge::CvImage cv_image2;
+    cv_bridge::CvImage cv_image2, cv_image3;
     cv_image2.encoding = cv_image.encoding;
     cv_image2.header.stamp = external_sync_time;
     cv::remap(cv_image.image, cv_image2.image, undistort_map1_, undistort_map2_, CV_INTER_LINEAR);
     time_surface_pub_.publish(cv_image2.toImageMsg());
+    cv_image3.encoding = cv_image.encoding;
+    cv_image3.header.stamp = external_sync_time;
+    cv_image3.image = pointSet.clone();
+    pointSet_pub_.publish(cv_image3.toImageMsg());
+    // std::cout<<time_surface_map<<std::endl;
+  // std::cout<<pointSet.type()<<std::endl;
   }
-
+  // cv::waitKey(0);
   //yufan added 
 
   // if(time_surface_mode_ == BACKWARD && bPropheseeUsed_)

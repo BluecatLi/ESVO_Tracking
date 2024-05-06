@@ -17,7 +17,8 @@ esvo_Tracking::esvo_Tracking(
   pnh_(nh_private),
   it_(nh),
   TS_left_sub_(nh_, "time_surface_left", 10),//Because Bobbin dataset only has one camera
-  // TS_right_sub_(nh_, "time_surface_left", 10),
+  TS_right_sub_(nh_, "time_surface_left", 10),
+  // Point_set_sub_(nh_, "point_set", 10),
   TS_sync_(ExactSyncPolicy(10), TS_left_sub_, TS_left_sub_),
   calibInfoDir_(tools::param(pnh_, "calibInfoDir", std::string(""))),
   camSysPtr_(new CameraSystem(calibInfoDir_, false)),
@@ -52,7 +53,8 @@ esvo_Tracking::esvo_Tracking(
   evsModelPath_             = tools::param(pnh_, "PATH_TO_LOAD_3DModel", std::string());
   camIntrinsicPath_            = tools::param(pnh_, "PATH_TO_CAMERA_INTRINSICS", std::string());
   nh_.setParam("/ESVO_SYSTEM_STATUS", ESVO_System_Status_);
-
+  
+  Point_set_sub_ = nh_.subscribe("point_set", 10, &esvo_Tracking::pointsetCallback, this);
   // online data callbacks
   events_left_sub_  = nh_.subscribe<dvs_msgs::EventArray>(
     "events_left", 0, &esvo_Tracking::eventsCallback, this);
@@ -62,6 +64,7 @@ esvo_Tracking::esvo_Tracking(
   path_pub_ = nh_.advertise<nav_msgs::Path>("/esvo_tracking/trajectory", 1);
   map_sub_ = nh_.subscribe("pointcloud", 0, &esvo_Tracking::refMapCallback, this);// local map in the ref view.
   stampedPose_sub_ = nh_.subscribe("stamped_pose", 0, &esvo_Tracking::stampedPoseCallback, this);// for accessing the pose of the ref view.
+  pointSet_pub_ = it_.advertise("/Depth_Pointset", 1);
 
 
   //orfcv
@@ -109,6 +112,18 @@ esvo_Tracking::esvo_Tracking(
   // }
   // std::cout<<"The pixels with gradient is "<<gradCounter<<std::endl;
  
+  // visualize the point set and depth map
+  // pointSet = cv::imread("/home/yufan/Data/experiments/ESVO/EVS/edgemap.png", 0);
+  // // std::cout<<pointSet<<std::endl;
+  // static cv_bridge::CvImage cv_image;
+  // cv_image.encoding = "mono8";
+  // cv_image.image = pointSet.clone();
+
+  // // ros::Time sync_time_ = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
+  // cv_image.header.stamp = ros::Time(1713838578, 314152240);
+  // cv_image.header.stamp = ros::Time::now();
+
+  // pointSet_pub_.publish(cv_image.toImageMsg());
 
 
  
@@ -118,10 +133,10 @@ esvo_Tracking::esvo_Tracking(
 
 /////////////////////////////////////////////////
   //Yufan add this 
-  std_msgs::Header header;
-  header.stamp = ros::Time::now();
-  sensor_msgs::ImagePtr msg2 = cv_bridge::CvImage(header, "bgr8", kf_grad).toImageMsg();
-  reprojMap_pub_left_.publish(msg2);
+  // std_msgs::Header header;
+  // header.stamp = ros::Time::now();
+  // sensor_msgs::ImagePtr msg2 = cv_bridge::CvImage(header, "bgr8", kf_grad).toImageMsg();
+  // reprojMap_pub_left_.publish(msg2);
 
 
 
@@ -134,6 +149,7 @@ esvo_Tracking::esvo_Tracking(
 esvo_Tracking::~esvo_Tracking()
 {
   pose_pub_.shutdown();
+  pointSet_pub_.shutdown();
 }
 
 void esvo_Tracking::TrackingLoop()
@@ -418,6 +434,13 @@ esvo_Tracking::timeSurfaceCallback(
     TS_history_.erase(it);
   }
 }
+
+void 
+esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
+{
+
+  pointSet_pub_.publish(point_set);
+};
 
 void esvo_Tracking::stampedPoseCallback(const geometry_msgs::PoseStampedConstPtr &msg)
 {

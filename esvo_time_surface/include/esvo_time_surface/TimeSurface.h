@@ -149,7 +149,8 @@ private:
   ros::Subscriber event_sub_;
   ros::Subscriber camera_info_sub_;
   ros::Subscriber sync_topic_;
-  image_transport::Publisher time_surface_pub_;
+  image_transport::Publisher time_surface_pub_, pointSet_pub_;
+  cv::Mat pointSet;
 
   // online parameters
   bool bCamInfoAvailable_;
