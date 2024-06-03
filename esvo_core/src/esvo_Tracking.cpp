@@ -5,8 +5,8 @@
 #include <tf/transform_broadcaster.h>
 #include <sys/stat.h>
 
-// #define ESVO_CORE_TRACKING_DEBUG
-// #define ESVO_CORE_TRACKING_LOG
+#define ESVO_CORE_TRACKING_DEBUG
+#define ESVO_CORE_TRACKING_LOG
 
 namespace esvo_core
 {
@@ -37,11 +37,13 @@ esvo_Tracking::esvo_Tracking(
   rpType_((RegProblemType)((size_t)tools::param(pnh_, "RegProblemType", 0))),
   rpSolver_(camSysPtr_, rpConfigPtr_, rpType_, NUM_THREAD_TRACKING),
   ESVO_System_Status_("INITIALIZATION"),
-  ets_(IDLE)
+  ets_(IDLE),
+  pc_(new PointCloud())
 {
   // offline data
   dvs_frame_id_        = tools::param(pnh_, "dvs_frame_id", std::string("dvs"));
   world_frame_id_      = tools::param(pnh_, "world_frame_id", std::string("world"));
+  pc_->header.frame_id = world_frame_id_;
 
   /**** online parameters ***/
   tracking_rate_hz_    = tools::param(pnh_, "tracking_rate_hz", 100);
@@ -69,13 +71,18 @@ esvo_Tracking::esvo_Tracking(
 
   //orfcv
   cam_omni = CameraOmni(YAML::LoadFile(camIntrinsicPath_));
-  std::cout<<"The camera intrinsic model is "<<cam_omni.xi<<" "<<cam_omni.px<< " "<< cam_omni.k[4]<<std::endl;
-  cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3], cam_omni.k[4]);
+  // std::cout<<"The camera intrinsic model is "<<cam_omni.xi<<" "<<cam_omni.px<< " "<< cam_omni.k[4]<<std::endl;
+  cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3]);
+  // std::cout<<cam_omni.px<<" "<<cam_omni.py<<" "<<cam_omni.u0<<" "<<cam_omni.v0<<" "<<cam_omni.xi<<std::endl;
   moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Related/Dependency/ogre-1.12.2/OgreConfigs/");
   moteur->init(); 
   moteur->loadPointCloud("objecttotrack", evsModelPath_);
   moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
+    // std::cout<<"Pose = "<<cam_omni.pose[0]<<" "<<cam_omni.pose[6]<<std::endl;
   cMo = toHomogeneousMatrix(cam_omni.pose).inverse();
+
+    // vpPoseVector pv(cMo);
+    // std::cout << "cMo = " << pv.t() << std::endl;
   if (moteur->continueRendering())
   {
       ROS_INFO("tentative rendu");
@@ -91,25 +98,34 @@ esvo_Tracking::esvo_Tracking(
   moteur->getInternalImageZ(kf_omni.Idepth);
 
   // std::cout<<"The width you want is "<<camSysPtr_->cam_left_ptr_->width_<<std::endl;
-  // vpImageConvert::convert(kf_omni.I, kf_I, true);
+  vpImageConvert::convert(kf_omni.I, kf_I, true);
   // vpImageConvert::convert(kf_omni.Idepth, kf_depth);
-  // std::cout<<"Width and height are"<<kf_I.rows<<" "<<kf_I.cols<<std::endl;
   // image_gradient(kf_I, kf_grad);
   // int gradCounter = 0;
-  // for (int i = 0; i < kf_grad.rows; i++)
-  // {
-  //     for (int j = 0; j < kf_grad.cols; j++)
-  //     {
-  //         // if ((kf.gradient.at<Vector2d>(i, j)[0] != 0 || kf.gradient.at<Vector2d>(i, j)[1] != 0) && (kf.depth.at<double>(i, j) > 0))
-  //         if (kf_grad.at<Vector2d>(i, j)[0] != 0 || kf_grad.at<Vector2d>(i, j)[1] != 0)
-  //         {
-  //             gradCounter++;
-  //             // std::cout << "i, j = " << i << " " << j << std::endl;
-  //             // cv::Vec3 test = kf.gradient.at<cv::Vec3>(i, j);
-  //             // std::cout << "Grad_x = " << kf.gradient.at<Vector2d>(i, j)[0] << "  Grad_y = " << kf.gradient.at<Vector2d>(i, j)[1] << std::endl;
-  //         }
-  //     }
-  // }
+  kf_depth = cv::Mat::zeros(cam_omni.height, cam_omni.width, CV_64FC1);
+  pc_->clear();
+  pc_->reserve(5000);
+  for (int i = 0; i < cam_omni.height; i++)
+  {
+      for (int j = 0; j < cam_omni.width; j++)
+      {
+          // if ((kf.gradient.at<Vector2d>(i, j)[0] != 0 || kf.gradient.at<Vector2d>(i, j)[1] != 0) && (kf.depth.at<double>(i, j) > 0))
+          // if (kf_grad.at<Vector2d>(i, j)[0] != 0 || kf_grad.at<Vector2d>(i, j)[1] != 0)
+          // {
+          //     gradCounter++;
+          //     // std::cout << "i, j = " << i << " " << j << std::endl;
+          //     // cv::Vec3 test = kf.gradient.at<cv::Vec3>(i, j);
+          //     // std::cout << "Grad_x = " << kf.gradient.at<Vector2d>(i, j)[0] << "  Grad_y = " << kf.gradient.at<Vector2d>(i, j)[1] << std::endl;
+          // }
+          kf_depth.at<double>(i, j) = double(kf_omni.Idepth[i][j]);
+      }
+  }
+
+    // cv::imwrite("/home/yufan/Data/2024/0506/kf.png", kf_I);
+  cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
+  mMin = 0;
+  psFlag = true;
+  // std::cout<<kf_depth<<std::endl;
   // std::cout<<"The pixels with gradient is "<<gradCounter<<std::endl;
  
   // visualize the point set and depth map
@@ -181,10 +197,14 @@ void esvo_Tracking::TrackingLoop()
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       if(ref_.t_.toSec() < refPCMap_.rbegin()->first.toSec())// new reference map arrived
+      {
         refDataTransferring();
+        // std::cout<<"Times are "<< ref_.t_.toSec() <<" "<< refPCMap_.rbegin()->first.toSec()<<std::endl;
+      }
       if(cur_.t_.toSec() < TS_history_.rbegin()->first.toSec())// new observation arrived
       {
-        if(ref_.t_.toSec() >= TS_history_.rbegin()->first.toSec())
+        // if(ref_.t_.toSec() >= TS_history_.rbegin()->first.toSec())
+        if(ref_.t_.toSec() > TS_history_.rbegin()->first.toSec())
         {
           LOG(INFO) << "The time_surface observation should be obtained after the reference frame";
           exit(-1);
@@ -307,6 +327,7 @@ esvo_Tracking::refDataTransferring()
     ref_.vPointXYZPtr_.push_back(PointXYZ_begin_it.base());// Copy the pointer of the pointXYZ
     PointXYZ_begin_it++;
   }
+  // std::cout<<ref_.tr_<<std::endl;
   return true;
 }
 
@@ -438,8 +459,52 @@ esvo_Tracking::timeSurfaceCallback(
 void 
 esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
 {
-
-  pointSet_pub_.publish(point_set);
+  if(psFlag == false)
+    return;
+  cv::Mat img;
+  cv_bridge::CvImagePtr cv_ptr_ps;
+  cv_ptr_ps = cv_bridge::toCvCopy(point_set, sensor_msgs::image_encodings::MONO8);
+  cv_ptr_ps->image.copyTo(img);
+  // std::cout<<img.type()<<std::endl;
+  cv::cvtColor(img, img, CV_GRAY2BGR);
+  // std::cout<<img<<std::endl;
+  // int ctr = 0;
+  for (int i = 0; i < img.rows; i++)
+    {
+        for (int j = 0; j < img.cols; j++)
+        {
+            // if ((abs(kf.gradient.at<Vector2d>(i, j)[0] * kf.gradient.at<Vector2d>(i, j)[1]) > 10) && (kf.depth.at<double>(i, j) > 0))
+            if (img.at<cv::Vec3b>(i,j)[1] == 255 )
+            {
+                double z = kf_depth.at<double>(i,j);
+                // std::cout<<z<<" ";
+                visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
+                // ctr ++;
+                Eigen::Vector3d p_world;
+                Eigen::Vector2d p_cam(j, i);
+                camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
+                // Eigen::Vector2d p_tmp;
+                // camSysPtr_->cam_left_ptr_->world2Cam(p_world, p_tmp);
+                // std::cout<<p_tmp<<std::endl;
+                pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+            }
+        }
+    }
+  
+  refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
+  // std::cout<<refPCMap_.size()<<std::endl;
+  // std::cout<<"The point set number is "<<ctr<<std::endl;
+  std_msgs::Header header;
+  header.stamp = cv_ptr_ps->header.stamp;
+  sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
+  // static cv_bridge::CvImage cv_image;
+  // cv_image.encoding = "mono8";
+  // cv_image.image = kf_I.clone();
+  // cv_image.header.stamp = cv_ptr_ps->header.stamp;
+  // pointSet_pub_.publish(cv_image.toImageMsg());
+  pointSet_pub_.publish(msg);
+  psFlag = false;
+  // cv::waitKey(0);
 };
 
 void esvo_Tracking::stampedPoseCallback(const geometry_msgs::PoseStampedConstPtr &msg)
@@ -562,10 +627,10 @@ vpHomogeneousMatrix esvo_Tracking::toHomogeneousMatrix(double *s)
     // double b = s.pose.orientation.y();
     // double c = s.pose.orientation.z();
     // double d = s.pose.orientation.w();
-    double a = s[3];
-    double b = s[4];
-    double c = s[5];
-    double d = s[6];
+    double a = s[6];
+    double b = s[3];
+    double c = s[4];
+    double d = s[5];
     rmat[0][0] = a * a + b * b - c * c - d * d;
     rmat[0][1] = 2 * b * c - 2 * a * d;
     rmat[0][2] = 2 * a * c + 2 * b * d;

@@ -39,7 +39,7 @@ class OmniCamera
   double height, width;
 
   // initial pose
-  double pose[6];
+  double pose[7];
 
   // clipping paras
   float clip_near, clip_far;

@@ -147,6 +147,7 @@ struct RegProblemLM : public optimization::OptimizationFunctor<double>
   Eigen::Matrix<double,12,6> J_G_0_;
   // debug
   bool bPrint_;
+  bool bFirst;
 };// struct RegProblemLM
 }// namespace core
 }// namespace esvo_core

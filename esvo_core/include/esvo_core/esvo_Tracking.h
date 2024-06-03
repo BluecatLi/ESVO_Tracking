@@ -37,6 +37,7 @@
 #include <ORFCV/COmni.h>
 #include <visp/vpHomogeneousMatrix.h>
 #include <visp/vpImageConvert.h>
+#include <visp/vpPoseVector.h>
 #include <esvo_core/core/camera_omni.h>
 #include <esvo_core/core/keyframe_omni.h>
 #include <esvo_core/core/utils.h>
@@ -158,6 +159,12 @@ class esvo_Tracking
   KeyframeOmni kf_omni;
   cv::Mat kf_I, kf_depth, kf_grad, kf_gradient;
   cv::Mat pointSet;
+  Visualization visualizor_;
+
+  cv::Point minP, maxP;
+  double mMin, mMax;
+  PointCloud::Ptr pc_;
+  bool psFlag;
 };
 template <class Scalar, int M, int Options = 0>
 using Vector = Eigen::Matrix<Scalar, M, 1, Options>;

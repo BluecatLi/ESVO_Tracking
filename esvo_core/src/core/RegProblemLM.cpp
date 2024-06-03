@@ -19,11 +19,13 @@ RegProblemLM::RegProblemLM(
 {
   patchSize_ = rpConfigPtr_->patchSize_X_ * rpConfigPtr_->patchSize_Y_;
   computeJ_G(Eigen::Matrix<double,6,1>::Zero(), J_G_0_);
+  bFirst = true;
 }
 
 void RegProblemLM::setProblem(RefFrame* ref, CurFrame* cur, bool bComputeGrad)
 {
   ref_ = ref;
+  // load ref's pointcloud tp vResItem
   cur_ = cur;
   T_world_ref_  = ref_->tr_.getTransformationMatrix();
   T_world_left_ = cur_->tr_.getTransformationMatrix();
@@ -33,7 +35,6 @@ void RegProblemLM::setProblem(RefFrame* ref, CurFrame* cur, bool bComputeGrad)
   Eigen::Matrix3d R_world_ref = T_world_ref_.block<3,3>(0,0);
   Eigen::Vector3d t_world_ref = T_world_ref_.block<3,1>(0,3);
 
-  // load ref's pointcloud tp vResItem
   ResItems_.clear();
   numPoints_ =ref_->vPointXYZPtr_.size();
   if(numPoints_ > rpConfigPtr_->MAX_REGISTRATION_POINTS_)
@@ -54,9 +55,13 @@ void RegProblemLM::setProblem(RefFrame* ref, CurFrame* cur, bool bComputeGrad)
                           (double) ref->vPointXYZPtr_[i]->z);
     Eigen::Vector3d p_cam = R_world_ref.transpose() * (p_tmp - t_world_ref);
     ResItems_[i].initialize(p_cam(0), p_cam(1), p_cam(2));//, var);
-  }
+  
   // for stochastic sampling
   numBatches_ = std::max(ResItems_.size() / rpConfigPtr_->BATCH_SIZE_, (size_t)1);
+  // bFirst = false;
+  // std::cout<<"First time set problem"<<std::endl;
+  }
+  
 
   // load cur's info
   pTsObs_ = cur->pTsObs_;

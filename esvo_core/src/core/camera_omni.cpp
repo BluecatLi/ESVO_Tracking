@@ -38,8 +38,8 @@ CameraOmni::CameraOmni(YAML::Node config)
         }
 
         px = c["intrinsics"][0].as<double>();
-        py = c["intrinsics"][1].as<double>();
-        u0 = c["intrinsics"][2].as<double>();
+        py = c["intrinsics"][2].as<double>();
+        u0 = c["intrinsics"][1].as<double>();
         v0 = c["intrinsics"][3].as<double>();
         xi = c["intrinsics"][4].as<double>();
 
