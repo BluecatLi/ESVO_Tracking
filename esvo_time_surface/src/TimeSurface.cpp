@@ -328,19 +328,17 @@ void TimeSurface::thread(Job &job)
 
 void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
 {
-  // ros::Duration time_elapse(0.52);
   // if(bUse_Sim_Time_)
   //   sync_time_ = ros::Time::now();
-  //   // sync_time_ = ros::Time::now()+time_elapse;
   // else
-  // if (events_.size() > 1){
-  //   sync_time_ = events_.back().ts;
+  //   sync_time_ = msg->data;
+
   if(events_.size() < 1)
     return;
-  // if((events_.back().ts - sync_time_).toSec() < 0.01)
-  //   return;
-  // ros::Duration delta_t(0.01);
-  // sync_time_ = sync_time_ + delta_t;
+  if((events_.back().ts - sync_time_).toSec() < 0)
+    return;
+  ros::Duration delta_t(0.01);
+  sync_time_ = sync_time_ + delta_t;
   // sync_time_ = events_.back().ts;
   // std::cout<<"Last event time is      "<<events_.back().ts<<std::endl;
   std::cout<<"Sync now time is        "<<sync_time_<<std::endl;

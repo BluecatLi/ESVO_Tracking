@@ -201,6 +201,7 @@ void esvo_Tracking::TrackingLoop()
         refDataTransferring();
         // std::cout<<"Times are "<< ref_.t_.toSec() <<" "<< refPCMap_.rbegin()->first.toSec()<<std::endl;
       }
+      // std::cout<<cur_.t_.toSec() - TS_history_.rbegin()->first.toSec()<<std::endl;
       if(cur_.t_.toSec() < TS_history_.rbegin()->first.toSec())// new observation arrived
       {
         // if(ref_.t_.toSec() >= TS_history_.rbegin()->first.toSec())
@@ -209,6 +210,7 @@ void esvo_Tracking::TrackingLoop()
           LOG(INFO) << "The time_surface observation should be obtained after the reference frame";
           exit(-1);
         }
+    // std::cout << "amebabababa..."<<std::endl;
         if(!curDataTransferring())
           continue;
       }
