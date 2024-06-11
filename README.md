@@ -122,6 +122,21 @@ Then play the input (already downloaded) bag file by running
 
 Note that only *rpg* and *upenn* datasets are applicable for this module because they come with the ground truth poses.
 
+## 2.4 EVS running
+To test time surface for live camera, you should
+
+	$ roslaunch esvo_time_surface bobbin_time_surface.launch
+
+This will start a node of time surface generation, a perspecive for visualization and a global timer for clock. Then run
+
+	$ roslaunch esvo_time_surface evs_live.launch
+
+This publishes the calibration information of the camera. They will be used in TS generation. Then run
+
+	$ roslaunch prophesee_ros_driver prophesee_publisher.launch
+
+This will wrap and publish the events. 
+
 # 3. Parameters (Dynamic Reconfigure)
 ## Time Surface
 - `use_sim_time `: Set `True` for all offline experiments, which use 

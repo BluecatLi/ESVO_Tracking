@@ -1,4 +1,4 @@
-use_sim_time: True
+use_sim_time: False
 start_time_sec: 1713838578
 start_time_nsec: 314152240
 ignore_polarity: True

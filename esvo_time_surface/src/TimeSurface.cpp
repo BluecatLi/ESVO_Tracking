@@ -328,20 +328,27 @@ void TimeSurface::thread(Job &job)
 
 void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
 {
-  // if(bUse_Sim_Time_)
-  //   sync_time_ = ros::Time::now();
-  // else
-  //   sync_time_ = msg->data;
+  if(bUse_Sim_Time_)
+    sync_time_ = ros::Time::now();
+  else
+    sync_time_ = msg->data;
 
   if(events_.size() < 1)
     return;
-  if((events_.back().ts - sync_time_).toSec() < 0)
-    return;
-  ros::Duration delta_t(0.01);
-  sync_time_ = sync_time_ + delta_t;
+  evt_ctr ++;
+  if(evt_ctr == 99){
+    evt_ctr = 0;
+    std::cout<<"Event in 1s = "<<events_.size() - evt_persec<<std::endl;
+    evt_persec = events_.size();
+
+  }
+  // if((events_.back().ts - sync_time_).toSec() < 0)
+  //   return;
+  // ros::Duration delta_t(0.01);
+  // sync_time_ = sync_time_ + delta_t;
   // sync_time_ = events_.back().ts;
   // std::cout<<"Last event time is      "<<events_.back().ts<<std::endl;
-  std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
+  // std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
   // ros::Time tmp = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
   // std::cout<<"sync time = "<<sync_time_<<std::endl;
   // std::cout<<tmp<<std::endl;
@@ -350,10 +357,10 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
     TicToc tt;
     tt.tic();
 #endif
-    if(NUM_THREAD_TS == 1 && events_.back().ts > sync_time_)
-      createTimeSurfaceAtTime(sync_time_);
-    if(NUM_THREAD_TS > 1)
-      createTimeSurfaceAtTime_hyperthread(sync_time_);
+    // if(NUM_THREAD_TS == 1 && events_.back().ts > sync_time_)
+    //   createTimeSurfaceAtTime(sync_time_);
+    // if(NUM_THREAD_TS > 1)
+    //   createTimeSurfaceAtTime_hyperthread(sync_time_);
 // #ifdef ESVO_TS_LOG
 //     LOG(INFO) << "Time Surface map's creation takes: " << tt.toc() << " ms.";
 // #endif
@@ -506,7 +513,7 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
 void TimeSurface::clearEventQueue()
 {
-  static constexpr size_t MAX_EVENT_QUEUE_LENGTH = 10;
+  static constexpr size_t MAX_EVENT_QUEUE_LENGTH = 500000000;
   if (events_.size() > MAX_EVENT_QUEUE_LENGTH)
   {
     size_t remove_events = events_.size() - MAX_EVENT_QUEUE_LENGTH;

@@ -177,6 +177,9 @@ private:
   // thread mutex
   std::mutex data_mutex_;
 
+  int evt_persec = 0;
+  int evt_ctr = 0;
+
   // Time Surface Mode
   // Backward: First Apply exp decay on the raw image plane, then get the value
   //           at each pixel in the rectified image plane by looking up the
