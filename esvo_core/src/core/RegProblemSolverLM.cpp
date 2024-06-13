@@ -37,6 +37,7 @@ RegProblemSolverLM::RegProblemSolverLM(
   lmStatics_.nPoints_ = 0;
   lmStatics_.nfev_ = 0;
   lmStatics_.nIter_ = 0;
+  
 }
 
 RegProblemSolverLM::~RegProblemSolverLM()
@@ -170,6 +171,7 @@ bool RegProblemSolverLM::solve_analytical()
       return false;
     }
     Eigen::LevenbergMarquardtSpace::Status status = lm.minimizeOneStep(x);
+    // std::cout<<"Poses are "<<x<<std::endl;
     regProblemPtr_->addMotionUpdate(x);
 
     iteration++;
@@ -177,6 +179,18 @@ bool RegProblemSolverLM::solve_analytical()
     if(status == 2 || status == 3)
       break;
   }
+  // This is the 6-D pose variation to publish
+
+  Eigen::Vector3d evsR = tools::rot2cayley(regProblemPtr_->R_);
+  std_msgs::Float64MultiArray evsTrans;
+  
+  evsTrans.data.push_back(evsR[0]);
+  // evsTrans[1] =  evsR[1];
+  // evsTrans[2] =  evsR[2];
+  // evsTrans[3] =  regProblemPtr_->t_[0];
+  // evsTrans[4] =  regProblemPtr_->t_[1];
+  // evsTrans[5] =  regProblemPtr_->t_[2];
+  // std::cout<<"Pose is "<<evsTrans[1]<<" "<<evsTrans[1]<<std::endl;
 
   /*************************** Visualization ************************/
   if(bVisualize_) // will slow down the tracker a little bit
@@ -223,6 +237,11 @@ void RegProblemSolverLM::setRegPublisher(
   reprojMap_pub_ = reprojMap_pub;
 }
 
+void RegProblemSolverLM::setevsPublisher(
+  ros::Publisher evs_pub)
+{
+  evs_pub_ = evs_pub;
+}
 }//namespace core
 }//namespace esvo_core
 

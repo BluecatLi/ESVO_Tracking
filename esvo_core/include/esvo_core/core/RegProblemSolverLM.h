@@ -47,6 +47,7 @@ class RegProblemSolverLM
 
   // For test and visualization
   void setRegPublisher(image_transport::Publisher* reprojMap_pub);
+  void setevsPublisher(ros::Publisher evs_pub);
   LM_statics lmStatics_;// record LevenburgMarquardt log.
 
   // variables
@@ -62,6 +63,7 @@ private:
   // For test
   double z_min_, z_max_;
   image_transport::Publisher *reprojMap_pub_;
+  ros::Publisher evs_pub_;
   Visualization visualizor_;
   bool bPrint_, bVisualize_;
 };

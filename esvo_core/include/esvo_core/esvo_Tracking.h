@@ -42,6 +42,10 @@
 #include <esvo_core/core/keyframe_omni.h>
 #include <esvo_core/core/utils.h>
 
+#include <std_msgs/Float64.h>
+#include <std_msgs/Float64MultiArray.h>
+
+
 namespace esvo_core
 {
 using namespace core;
@@ -101,7 +105,7 @@ class esvo_Tracking
   image_transport::Publisher pointSet_pub_;
 
   // publishers
-  ros::Publisher pose_pub_, path_pub_;
+  ros::Publisher pose_pub_, path_pub_, evs_pub_;
 
   // results
   nav_msgs::Path path_;

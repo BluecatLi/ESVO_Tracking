@@ -146,6 +146,8 @@ esvo_Tracking::esvo_Tracking(
   /*** For Visualization and Test ***/
   reprojMap_pub_left_  = it_.advertise("Reproj_Map_Left", 1);
   rpSolver_.setRegPublisher(&reprojMap_pub_left_);
+  evs_pub_  = it_.advertise("/esvo_tracking/evs", 1);
+  rpSolver_.setRegPublisher(&reprojMap_pub_left_);
 
 /////////////////////////////////////////////////
   //Yufan add this 
@@ -166,6 +168,7 @@ esvo_Tracking::~esvo_Tracking()
 {
   pose_pub_.shutdown();
   pointSet_pub_.shutdown();
+  evs_pub_.shutdown();
 }
 
 void esvo_Tracking::TrackingLoop()
@@ -279,6 +282,7 @@ void esvo_Tracking::TrackingLoop()
     LOG(INFO) << "------------------------------------------------------------";
     LOG(INFO) << "------------------------------------------------------------";
 #endif
+  cv::waitKey(0);
     r.sleep();
   }// while
 

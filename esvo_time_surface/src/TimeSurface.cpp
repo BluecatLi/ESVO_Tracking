@@ -5,7 +5,7 @@
 #include <glog/logging.h>
 #include <thread>
 
-#define ESVO_TS_LOG
+// #define ESVO_TS_LOG
 
 namespace esvo_time_surface 
 {
