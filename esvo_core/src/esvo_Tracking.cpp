@@ -146,8 +146,8 @@ esvo_Tracking::esvo_Tracking(
   /*** For Visualization and Test ***/
   reprojMap_pub_left_  = it_.advertise("Reproj_Map_Left", 1);
   rpSolver_.setRegPublisher(&reprojMap_pub_left_);
-  evs_pub_  = it_.advertise("/esvo_tracking/evs", 1);
-  rpSolver_.setRegPublisher(&reprojMap_pub_left_);
+  evs_pub_  = nh_.advertise<geometry_msgs::Twist>("/esvo_tracking/evs", 1);
+  rpSolver_.setevsPublisher(evs_pub_);
 
 /////////////////////////////////////////////////
   //Yufan add this 
@@ -198,12 +198,14 @@ void esvo_Tracking::TrackingLoop()
 
     // Data Transfer (If mapping node had published refPC.)
     {
+    // std::cout << "amebabababa..."<<std::endl;
       std::lock_guard<std::mutex> lock(data_mutex_);
       if(ref_.t_.toSec() < refPCMap_.rbegin()->first.toSec())// new reference map arrived
       {
         refDataTransferring();
         // std::cout<<"Times are "<< ref_.t_.toSec() <<" "<< refPCMap_.rbegin()->first.toSec()<<std::endl;
       }
+
       // std::cout<<cur_.t_.toSec() - TS_history_.rbegin()->first.toSec()<<std::endl;
       if(cur_.t_.toSec() < TS_history_.rbegin()->first.toSec())// new observation arrived
       {
@@ -213,14 +215,12 @@ void esvo_Tracking::TrackingLoop()
           LOG(INFO) << "The time_surface observation should be obtained after the reference frame";
           exit(-1);
         }
-    // std::cout << "amebabababa..."<<std::endl;
         if(!curDataTransferring())
           continue;
       }
       else
         continue;
     }
-
     // create new regProblem
     TicToc tt;
     double t_resetRegProblem, t_solve, t_pub_result, t_pub_gt;
@@ -282,7 +282,7 @@ void esvo_Tracking::TrackingLoop()
     LOG(INFO) << "------------------------------------------------------------";
     LOG(INFO) << "------------------------------------------------------------";
 #endif
-  cv::waitKey(0);
+  // cv::waitKey(0);
     r.sleep();
   }// while
 

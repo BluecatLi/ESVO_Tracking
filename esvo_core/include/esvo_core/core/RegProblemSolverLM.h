@@ -12,6 +12,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <image_transport/image_transport.h>
+#include "geometry_msgs/Twist.h"
 
 namespace esvo_core
 {

@@ -157,6 +157,8 @@ bool RegProblemSolverLM::solve_analytical()
 
   size_t iteration = 0;
   size_t nfev = 0;
+  Eigen::Matrix3d skew_R_rel;
+  Eigen::Vector3d dt;
   while(true)
   {
     if(iteration >= rpConfigPtr_->MAX_ITERATION_)
@@ -174,23 +176,30 @@ bool RegProblemSolverLM::solve_analytical()
     // std::cout<<"Poses are "<<x<<std::endl;
     regProblemPtr_->addMotionUpdate(x);
 
+    Eigen::Vector3d dc = x.block<3,1>(0,0);
+    dt = x.block<3,1>(3,0);
+    // add rotation
+    Eigen::Matrix3d dR = tools::cayley2rot(dc);
+    skew_R_rel = (dR - dR.transpose()) / 2.0;
     iteration++;
     nfev += lm.nfev;
-    if(status == 2 || status == 3)
-      break;
-  }
-  // This is the 6-D pose variation to publish
+    if(status == 2 || status == 3){
 
-  Eigen::Vector3d evsR = tools::rot2cayley(regProblemPtr_->R_);
-  std_msgs::Float64MultiArray evsTrans;
-  
-  evsTrans.data.push_back(evsR[0]);
-  // evsTrans[1] =  evsR[1];
-  // evsTrans[2] =  evsR[2];
-  // evsTrans[3] =  regProblemPtr_->t_[0];
-  // evsTrans[4] =  regProblemPtr_->t_[1];
-  // evsTrans[5] =  regProblemPtr_->t_[2];
-  // std::cout<<"Pose is "<<evsTrans[1]<<" "<<evsTrans[1]<<std::endl;
+      break;
+    }
+  }
+  // This is the 6-D velocity to publish
+  double delta_t = 0.01;
+
+  geometry_msgs::Twist msg_vel;
+  msg_vel.angular.x = -skew_R_rel(2,1)/delta_t;
+  msg_vel.angular.y = -skew_R_rel(0,2)/delta_t;
+  msg_vel.angular.z = -skew_R_rel(1,0)/delta_t;
+  msg_vel.linear.x = -dt(0)/delta_t;
+  msg_vel.linear.y = -dt(1)/delta_t;
+  msg_vel.linear.z = -dt(2)/delta_t;
+  evs_pub_.publish(msg_vel);
+
 
   /*************************** Visualization ************************/
   if(bVisualize_) // will slow down the tracker a little bit

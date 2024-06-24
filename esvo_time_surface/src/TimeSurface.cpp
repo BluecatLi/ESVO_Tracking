@@ -13,6 +13,7 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   : nh_(nh)
 {
   // setup subscribers and publishers
+  
   event_sub_ = nh_.subscribe("events", 0, &TimeSurface::eventsCallback, this);
   // camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback_prophesee, this);
   camera_info_sub_ = nh_.subscribe("camera_info", 1, &TimeSurface::cameraInfoCallback, this);
@@ -55,6 +56,7 @@ void TimeSurface::init(int width, int height)
   bSensorInitialized_ = true;
   pEventQueueMat_.reset(new EventQueueMat(width, height, max_event_queue_length_));
   ROS_INFO("Sensor size: (%d x %d)", sensor_size_.width, sensor_size_.height);
+  representation_SILC_ = cv::Mat::zeros(sensor_size_, CV_8UC1);
 }
 
 void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
@@ -76,6 +78,10 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   else
     external_time = external_sync_time;
   // Loop through all coordinates
+  int r_ = 3;
+  int SILC_bound_ = (2*r_+1)*(2*r_+1);
+  int k_tos_ = 3;
+  int T_tos_ = 241;
   for(int y=0; y<sensor_size_.height; ++y)
   {
     for(int x=0; x<sensor_size_.width; ++x)
@@ -138,45 +144,70 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
 
     }// loop x
   }// loop y
+//   auto it = InvolvedEvents_.begin();
+//     for(;it != InvolvedEvents_.end();it++)
+//     {
+//       dvs_msgs::Event e = *it;
+//       for(int dx = -k_tos_; dx <= k_tos_; dx++)
+//         for(int dy = -k_tos_; dy <= k_tos_; dy++)
+//         {
+//           if(e.x + dx < 0 || e.x + dx >= sensor_size_.width || e.y + dy < 0 || e.y + dy >= sensor_size_.height)
+//             continue;
+// //          if(e.polarity < 0)
+// //            continue;
+//           if(representation_SILC_.at<uchar>(e.y+dy, e.x+dx) >= 1)
+//             representation_SILC_.at<uchar>(e.y+dy, e.x+dx)--;
+// //            representation_TOS_.at<uchar>(e.y+dy, e.x+dx) = representation_TOS_.at<uchar>(e.y+dy, e.x+dx) - substraction_delta_;
+//           if(representation_SILC_.at<uchar>(e.y+dy, e.x+dx) < T_tos_)
+//             representation_SILC_.at<uchar>(e.y+dy, e.x+dx) = 0;
+//         }
+//       representation_SILC_.at<uchar>(e.y, e.x) = 255;
+//     }
 
-  // polarity
-  if(!ignore_polarity_)
-    time_surface_map = 255.0 * (time_surface_map + 1.0) / 2.0;
-  else
-    time_surface_map = 255.0 * time_surface_map;
-  time_surface_map.convertTo(time_surface_map, CV_8U);
-  // pointSet.convertTo(pointSet, CV_8U);
+  // // polarity
+  // if(!ignore_polarity_)
+  //   time_surface_map = 255.0 * (time_surface_map + 1.0) / 2.0;
+  // else
+  //   time_surface_map = 255.0 * time_surface_map;
+  // time_surface_map.convertTo(time_surface_map, CV_8U);
+  // // pointSet.convertTo(pointSet, CV_8U);
 
-  // median blur
-  if(median_blur_kernel_size_ > 0)
-    cv::medianBlur(time_surface_map, time_surface_map, 2 * median_blur_kernel_size_ + 1);
-  // Publish event image
+  // // median blur
+  // if(median_blur_kernel_size_ > 0)
+  //   cv::medianBlur(time_surface_map, time_surface_map, 2 * median_blur_kernel_size_ + 1);
+  // // Publish event image
   static cv_bridge::CvImage cv_image;
   cv_image.encoding = "mono8";
-  cv_image.image = time_surface_map.clone();
+  // cv_image.image = time_surface_map.clone();
+    // cv::Mat SILC_img = cv::Mat::zeros(sensor_size_, CV_64F);
+    // // Add a lock here
+    // SILC_img = 255.0 * representation_SILC_ / SILC_bound_;
+    // SILC_img.convertTo(SILC_img, CV_8U);
+    cv_image.image = representation_SILC_.clone();
+  // std::cout<<SILC_img<<std::endl;
 
   // cv::imwrite("/home/yufan/Data/experiments/ESVO/TS.png", time_surface_map);
-  if(time_surface_mode_ == FORWARD && time_surface_pub_.getNumSubscribers() > 0)
-  {
+  // if(time_surface_mode_ == FORWARD && time_surface_pub_.getNumSubscribers() > 0)
+  // {
     cv_image.header.stamp = external_sync_time;
     time_surface_pub_.publish(cv_image.toImageMsg());
 
-  }
-
-  if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
-  {
-    cv_bridge::CvImage cv_image2, cv_image3;
-    cv_image2.encoding = cv_image.encoding;
-    cv_image2.header.stamp = external_sync_time;
-    cv::remap(cv_image.image, cv_image2.image, undistort_map1_, undistort_map2_, CV_INTER_LINEAR);
-    time_surface_pub_.publish(cv_image2.toImageMsg());
-    cv_image3.encoding = cv_image.encoding;
-    cv_image3.header.stamp = external_sync_time;
-    cv_image3.image = pointSet.clone();
-    pointSet_pub_.publish(cv_image3.toImageMsg());
-    // std::cout<<time_surface_map<<std::endl;
-  // std::cout<<pointSet.type()<<std::endl;
-  }
+  // std::cout<<"here lala"<<std::endl;
+  // }
+  // if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
+  // {
+  //   cv_bridge::CvImage cv_image2, cv_image3;
+  //   cv_image2.encoding = cv_image.encoding;
+  //   cv_image2.header.stamp = external_sync_time;
+  //   cv::remap(cv_image.image, cv_image2.image, undistort_map1_, undistort_map2_, CV_INTER_LINEAR);
+  //   time_surface_pub_.publish(cv_image2.toImageMsg());
+  //   cv_image3.encoding = cv_image.encoding;
+  //   cv_image3.header.stamp = external_sync_time;
+  //   cv_image3.image = pointSet.clone();
+  //   pointSet_pub_.publish(cv_image3.toImageMsg());
+  //   // std::cout<<time_surface_map<<std::endl;
+  // // std::cout<<pointSet.type()<<std::endl;
+  // }
   // cv::waitKey(0);
   //yufan added 
 
@@ -185,6 +216,7 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   //   cv_image.header.stamp = external_sync_time;
   //   time_surface_pub_.publish(cv_image.toImageMsg());
   // }
+  InvolvedEvents_.clear();
 }
 
 void TimeSurface::createTimeSurfaceAtTime_hyperthread(const ros::Time& external_sync_time)
@@ -490,6 +522,7 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     // std::cout<<"Time diff is "<<ros::Time::now().toSec() - e.ts.toSec()<<std::endl;
     // std::cout<<"Event time is "<< e.ts.toSec()<<"Current time is "<< ros::Time::now().toSec()<<std::endl;
     events_.push_back(e);
+    InvolvedEvents_.push_back(e);
     int i = events_.size() - 2;
     while(i >= 0 && events_[i].ts > e.ts)
     {

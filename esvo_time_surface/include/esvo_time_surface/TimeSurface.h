@@ -180,6 +180,9 @@ private:
   int evt_persec = 0;
   int evt_ctr = 0;
 
+  cv::Mat representation_SILC_;
+  EventQueue InvolvedEvents_;
+
   // Time Surface Mode
   // Backward: First Apply exp decay on the raw image plane, then get the value
   //           at each pixel in the rectified image plane by looking up the
