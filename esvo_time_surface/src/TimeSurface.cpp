@@ -82,68 +82,69 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
   int SILC_bound_ = (2*r_+1)*(2*r_+1);
   int k_tos_ = 3;
   int T_tos_ = 241;
-  for(int y=0; y<sensor_size_.height; ++y)
-  {
-    for(int x=0; x<sensor_size_.width; ++x)
-    {
-      dvs_msgs::Event most_recent_event_at_coordXY_before_T;
-      // std::cout<<y <<" "<<x<<std::endl;
-      if(pEventQueueMat_->getMostRecentEventBeforeT(x, y, external_time, &most_recent_event_at_coordXY_before_T))
-      {
-        const ros::Time& most_recent_stamp_at_coordXY = most_recent_event_at_coordXY_before_T.ts;
-        // std::cout<<"The time is "<<most_recent_stamp_at_coordXY.toSec()<<std::endl;
-        if(most_recent_stamp_at_coordXY.toSec() > 0)
-        {
-          const double dt = (external_time - most_recent_stamp_at_coordXY).toSec();
-          // std::cout<<"Dt is "<<dt<<std::endl;
-          double polarity = (most_recent_event_at_coordXY_before_T.polarity) ? 1.0 : -1.0;
-          double expVal = std::exp(-dt / decay_sec);
-          // double expVal = std::exp(0 / decay_sec);
-          if(!ignore_polarity_)
-            expVal *= polarity;
+  // for(int y=0; y<sensor_size_.height; ++y)
+  // {
+  //   for(int x=0; x<sensor_size_.width; ++x)
+  //   {
+  //     dvs_msgs::Event most_recent_event_at_coordXY_before_T;
+  //     // std::cout<<y <<" "<<x<<std::endl;
+  //     if(pEventQueueMat_->getMostRecentEventBeforeT(x, y, external_time, &most_recent_event_at_coordXY_before_T))
+  //     {
+  //       const ros::Time& most_recent_stamp_at_coordXY = most_recent_event_at_coordXY_before_T.ts;
+  //       // std::cout<<"The time is "<<most_recent_stamp_at_coordXY.toSec()<<std::endl;
+  //       if(most_recent_stamp_at_coordXY.toSec() > 0)
+  //       {
+  //         const double dt = (external_time - most_recent_stamp_at_coordXY).toSec();
+  //         // std::cout<<"Dt is "<<dt<<std::endl;
+  //         double polarity = (most_recent_event_at_coordXY_before_T.polarity) ? 1.0 : -1.0;
+  //         double expVal = std::exp(-dt / decay_sec);
+  //         // double expVal = std::exp(0 / decay_sec);
+  //         if(!ignore_polarity_)
+  //           expVal *= polarity;
 
-          // Backward version
-          if(time_surface_mode_ == BACKWARD)
-            time_surface_map.at<double>(y,x) = expVal;
+  //         // Backward version
+  //         if(time_surface_mode_ == BACKWARD)
+  //           time_surface_map.at<double>(y,x) = expVal;
 
-          // Forward version
-          if(time_surface_mode_ == FORWARD && bCamInfoAvailable_)
-          {
-            Eigen::Matrix<double, 2, 1> uv_rect = precomputed_rectified_points_.block<2, 1>(0, y * sensor_size_.width + x);
-            size_t u_i, v_i;
-            if(uv_rect(0) >= 0 && uv_rect(1) >= 0)
-            {
-              u_i = std::floor(uv_rect(0));
-              v_i = std::floor(uv_rect(1));
+  //         // Forward version
+  //         if(time_surface_mode_ == FORWARD && bCamInfoAvailable_)
+  //         {
+  //           Eigen::Matrix<double, 2, 1> uv_rect = precomputed_rectified_points_.block<2, 1>(0, y * sensor_size_.width + x);
+  //           size_t u_i, v_i;
+  //           if(uv_rect(0) >= 0 && uv_rect(1) >= 0)
+  //           {
+  //             u_i = std::floor(uv_rect(0));
+  //             v_i = std::floor(uv_rect(1));
 
-              if(u_i + 1 < sensor_size_.width && v_i + 1 < sensor_size_.height)
-              {
-                double fu = uv_rect(0) - u_i;
-                double fv = uv_rect(1) - v_i;
-                double fu1 = 1.0 - fu;
-                double fv1 = 1.0 - fv;
-                time_surface_map.at<double>(v_i, u_i) += fu1 * fv1 * expVal;
-                time_surface_map.at<double>(v_i, u_i + 1) += fu * fv1 * expVal;
-                time_surface_map.at<double>(v_i + 1, u_i) += fu1 * fv * expVal;
-                time_surface_map.at<double>(v_i + 1, u_i + 1) += fu * fv * expVal;
+  //             if(u_i + 1 < sensor_size_.width && v_i + 1 < sensor_size_.height)
+  //             {
+  //               double fu = uv_rect(0) - u_i;
+  //               double fv = uv_rect(1) - v_i;
+  //               double fu1 = 1.0 - fu;
+  //               double fv1 = 1.0 - fv;
+  //               time_surface_map.at<double>(v_i, u_i) += fu1 * fv1 * expVal;
+  //               time_surface_map.at<double>(v_i, u_i + 1) += fu * fv1 * expVal;
+  //               time_surface_map.at<double>(v_i + 1, u_i) += fu1 * fv * expVal;
+  //               time_surface_map.at<double>(v_i + 1, u_i + 1) += fu * fv * expVal;
 
-                if(time_surface_map.at<double>(v_i, u_i) > 1)
-                  time_surface_map.at<double>(v_i, u_i) = 1;
-                if(time_surface_map.at<double>(v_i, u_i + 1) > 1)
-                  time_surface_map.at<double>(v_i, u_i + 1) = 1;
-                if(time_surface_map.at<double>(v_i + 1, u_i) > 1)
-                  time_surface_map.at<double>(v_i + 1, u_i) = 1;
-                if(time_surface_map.at<double>(v_i + 1, u_i + 1) > 1)
-                  time_surface_map.at<double>(v_i + 1, u_i + 1) = 1;
-              }
-            }
-          } // forward
-        }
-      } // a most recent event is available
-      // std::cout<<pointSet.at<unsigned char>(y,x)<<std::endl;
+  //               if(time_surface_map.at<double>(v_i, u_i) > 1)
+  //                 time_surface_map.at<double>(v_i, u_i) = 1;
+  //               if(time_surface_map.at<double>(v_i, u_i + 1) > 1)
+  //                 time_surface_map.at<double>(v_i, u_i + 1) = 1;
+  //               if(time_surface_map.at<double>(v_i + 1, u_i) > 1)
+  //                 time_surface_map.at<double>(v_i + 1, u_i) = 1;
+  //               if(time_surface_map.at<double>(v_i + 1, u_i + 1) > 1)
+  //                 time_surface_map.at<double>(v_i + 1, u_i + 1) = 1;
+  //             }
+  //           }
+  //         } // forward
+  //       }
+  //     } // a most recent event is available
+  //     // std::cout<<pointSet.at<unsigned char>(y,x)<<std::endl;
 
-    }// loop x
-  }// loop y
+  //   }// loop x
+  // }// loop y
+
 //   auto it = InvolvedEvents_.begin();
 //     for(;it != InvolvedEvents_.end();it++)
 //     {
@@ -163,6 +164,23 @@ void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
 //         }
 //       representation_SILC_.at<uchar>(e.y, e.x) = 255;
 //     }
+    representation_SILC_.setTo(cv::Scalar(0));
+    for(size_t y = 0; y < sensor_size_.height; y++)
+      for(size_t x = 0; x < sensor_size_.width; x++)
+      {
+        for(int dx = -r_; dx <= r_; dx++)
+          for(int dy = -r_; dy <= r_; dy++)
+          {
+            if(x + dx < 0 || x + dx >= sensor_size_.width || y + dy < 0 || y + dy >= sensor_size_.height)
+              continue;
+            dvs_msgs::Event ev, ev_nb;
+            if(!pEventQueueMat_->getMostRecentEventBeforeT(x, y, external_sync_time, &ev) ||
+              !pEventQueueMat_->getMostRecentEventBeforeT(x+dx, y+dy, external_sync_time, &ev_nb))
+              continue;
+            if(ev.ts.toSec() < ev_nb.ts.toSec())
+              representation_SILC_.at<uchar>(y,x)++;
+          }
+      }
 
   // // polarity
   // if(!ignore_polarity_)
@@ -379,8 +397,8 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
   //   std::cout<<"Event in 1s = "<<events_.size() - evt_persec<<std::endl;
   //   evt_persec = events_.size();
   // }
-  if((events_.back().ts - sync_time_).toSec() < 0)
-    return;
+  // if((events_.back().ts - sync_time_).toSec() < 0)
+  //   return;
   // ros::Duration delta_t(0.01);
   // sync_time_ = sync_time_ + delta_t;
   sync_time_ = events_.back().ts;
@@ -394,7 +412,7 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
     TicToc tt;
     tt.tic();
 #endif
-    if(NUM_THREAD_TS == 1 && events_.back().ts > sync_time_)
+    if(NUM_THREAD_TS == 1)
       createTimeSurfaceAtTime(sync_time_);
     if(NUM_THREAD_TS > 1)
       createTimeSurfaceAtTime_hyperthread(sync_time_);
