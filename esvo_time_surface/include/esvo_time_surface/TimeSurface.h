@@ -23,7 +23,7 @@
 
 namespace esvo_time_surface
 {
-#define NUM_THREAD_TS 4
+#define NUM_THREAD_TS 1
 using EventQueue = std::deque<dvs_msgs::Event>;
 
 class EventQueueMat 
