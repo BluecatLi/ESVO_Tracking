@@ -5,7 +5,7 @@
 #include <glog/logging.h>
 #include <thread>
 
-// #define ESVO_TS_LOG
+#define ESVO_TS_LOG
 
 namespace esvo_time_surface 
 {
@@ -552,6 +552,7 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     const dvs_msgs::Event& last_event = events_.back();
     // Use a vector instead
     pEventQueueMat_->insertEvent(last_event);
+    pEventTs_[last_event.x + last_event.y*msg->width] = last_event.ts.toSec();
   }
 
   // dvs_msgs::Event& ttevent = events_.back();

@@ -173,6 +173,8 @@ private:
   // containers
   EventQueue events_;
   std::shared_ptr<EventQueueMat> pEventQueueMat_;
+  static const size_t SIZE = 480*640;
+  std::array<double, SIZE> pEventTs_ = {0.0};
 
   // thread mutex
   std::mutex data_mutex_;
