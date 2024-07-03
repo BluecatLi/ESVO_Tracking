@@ -146,7 +146,7 @@ esvo_Tracking::esvo_Tracking(
   /*** For Visualization and Test ***/
   reprojMap_pub_left_  = it_.advertise("Reproj_Map_Left", 1);
   rpSolver_.setRegPublisher(&reprojMap_pub_left_);
-  evs_pub_  = nh_.advertise<geometry_msgs::Twist>("/esvo_tracking/evs", 1);
+  evs_pub_  = nh_.advertise<geometry_msgs::Twist>("/esvo_tracking/evs", 10);
   rpSolver_.setevsPublisher(evs_pub_);
 
 /////////////////////////////////////////////////
