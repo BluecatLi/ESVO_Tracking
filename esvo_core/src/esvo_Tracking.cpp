@@ -5,8 +5,8 @@
 #include <tf/transform_broadcaster.h>
 #include <sys/stat.h>
 
-#define ESVO_CORE_TRACKING_DEBUG
-#define ESVO_CORE_TRACKING_LOG
+// #define ESVO_CORE_TRACKING_DEBUG
+// #define ESVO_CORE_TRACKING_LOG
 
 namespace esvo_core
 {
@@ -73,6 +73,7 @@ esvo_Tracking::esvo_Tracking(
   cam_omni = CameraOmni(YAML::LoadFile(camIntrinsicPath_));
   // std::cout<<"The camera intrinsic model is "<<cam_omni.xi<<" "<<cam_omni.px<< " "<< cam_omni.k[4]<<std::endl;
   cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3]);
+  cam->setActiveDistorsionParameters(true, true, true, true, false);
   // std::cout<<cam_omni.px<<" "<<cam_omni.py<<" "<<cam_omni.u0<<" "<<cam_omni.v0<<" "<<cam_omni.xi<<std::endl;
   moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Related/Dependency/ogre-1.12.2/OgreConfigs/");
   moteur->init(); 
@@ -177,28 +178,30 @@ void esvo_Tracking::TrackingLoop()
   while(ros::ok())
   {
     // Keep Idling
+    // std::cout << "amebabababa..."<<std::endl;
     if(refPCMap_.size() < 1 || TS_history_.size() < 1)
     {
-      r.sleep();
+      // std::cout << "Sleeping..." << std::endl;
+      // r.sleep();
       continue;
     }
     // Reset
     nh_.getParam("/ESVO_SYSTEM_STATUS", ESVO_System_Status_);
-    if(ESVO_System_Status_ == "INITIALIZATION" && ets_ == WORKING)// This is true when the system is reset from dynamic reconfigure
-    {
-      reset();
-      r.sleep();
-      continue;
-    }
+    // if(ESVO_System_Status_ == "INITIALIZATION" && ets_ == WORKING)// This is true when the system is reset from dynamic reconfigure
+    // {
+    //   reset();
+    //   // r.sleep();
+    //   continue;
+    // }
     if(ESVO_System_Status_ == "TERMINATE")
     {
       LOG(INFO) << "The tracking node is terminated manually...";
       break;
     }
 
+      // std::cout<<refPCMap_.size()<<" "<<TS_history_.size()<<std::endl;
     // Data Transfer (If mapping node had published refPC.)
     {
-    // std::cout << "amebabababa..."<<std::endl;
       std::lock_guard<std::mutex> lock(data_mutex_);
       if(ref_.t_.toSec() < refPCMap_.rbegin()->first.toSec())// new reference map arrived
       {
@@ -222,6 +225,7 @@ void esvo_Tracking::TrackingLoop()
         continue;
     }
     // create new regProblem
+
     TicToc tt;
     double t_resetRegProblem, t_solve, t_pub_result, t_pub_gt;
 #ifdef  ESVO_CORE_TRACKING_DEBUG
@@ -283,7 +287,7 @@ void esvo_Tracking::TrackingLoop()
     LOG(INFO) << "------------------------------------------------------------";
 #endif
   // cv::waitKey(0);
-    r.sleep();
+    // r.sleep();
   }// while
 
   if(bSaveTrajectory_)
@@ -460,6 +464,7 @@ esvo_Tracking::timeSurfaceCallback(
     auto it = TS_history_.begin();
     TS_history_.erase(it);
   }
+  // std::cout<<TS_history_.size()<<std::endl;
 }
 
 void 

@@ -23,7 +23,7 @@
 
 namespace esvo_time_surface
 {
-#define NUM_THREAD_TS 1
+#define NUM_THREAD_TS 4
 using EventQueue = std::deque<dvs_msgs::Event>;
 
 class EventQueueMat 
@@ -108,7 +108,7 @@ class TimeSurface
   struct Job
   {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    EventQueueMat* pEventQueueMat_;
+    // EventQueueMat* pEventQueueMat_;
     cv::Mat* pTimeSurface_;
     size_t start_col_, end_col_;
     size_t start_row_, end_row_;
@@ -183,7 +183,7 @@ private:
   int evt_ctr = 0;
 
   cv::Mat representation_SILC_;
-  EventQueue InvolvedEvents_;
+  // EventQueue InvolvedEvents_;
 
   // Time Surface Mode
   // Backward: First Apply exp decay on the raw image plane, then get the value

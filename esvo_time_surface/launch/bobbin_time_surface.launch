@@ -17,4 +17,10 @@
   <!-- Visualization -->
   <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui"
         args="--perspective-file $(find esvo_time_surface)/esvo_time_surface.perspective" />
+        
+  <!-- <include file="$(find prophesee_ros_driver)/launch/prophesee_publisher.launch" /> -->
+
+
+  <!-- Camera intrinsics-->
+  <include file="$(find esvo_time_surface)/launch/rosbag_launcher/bobbin/prophesee_calib_info.launch" />
 </launch>

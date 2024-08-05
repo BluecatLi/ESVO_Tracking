@@ -2,9 +2,7 @@
   <!-- ROS BAG -->
   <rosparam param="/use_sim_time">true</rosparam>
   <node pkg="rosbag" type="play" name="play" output="screen" required="true"
-    args="/home/yufan/Data/2024/0625/0625_1.bag -r 1.0 --clock">
+    args="/home/yufan/Data/2024/0730/rec_0730_1.bag -r 1.0 --clock">
   </node>
 
-  <!-- Publish stereo camera calibration -->
-  <include file="$(find esvo_time_surface)/launch/rosbag_launcher/bobbin/prophesee_calib_info.launch" />
 </launch>

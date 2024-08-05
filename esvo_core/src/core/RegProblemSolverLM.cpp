@@ -161,7 +161,7 @@ bool RegProblemSolverLM::solve_analytical()
   Eigen::Vector3d dt;
   while(true)
   {
-    if(iteration >= rpConfigPtr_->MAX_ITERATION_)
+    if(iteration >= 10*rpConfigPtr_->MAX_ITERATION_)
       break;
     regProblemPtr_->setStochasticSampling(
       (iteration % regProblemPtr_->numBatches_) * rpConfigPtr_->BATCH_SIZE_, rpConfigPtr_->BATCH_SIZE_);
@@ -176,12 +176,13 @@ bool RegProblemSolverLM::solve_analytical()
     // std::cout<<"Poses are "<<x<<std::endl;
     regProblemPtr_->addMotionUpdate(x);
 
-    Eigen::Vector3d dc = x.block<3,1>(0,0);
-    dt = x.block<3,1>(3,0);
-    // add rotation
-    Eigen::Matrix3d dR = tools::cayley2rot(dc);
-    skew_R_rel = (dR - dR.transpose()) / 2.0;
+    // Eigen::Vector3d dc = x.block<3,1>(0,0);
+    // dt = x.block<3,1>(3,0);
+    // // add rotation
+    // Eigen::Matrix3d dR = tools::cayley2rot(dc);
+    // skew_R_rel = (dR - dR.transpose()) / 2.0;
     iteration++;
+    // std::cout<<"Iteration is "<<iteration<<std::endl;
     nfev += lm.nfev;
     if(status == 2 || status == 3){
 
@@ -189,15 +190,17 @@ bool RegProblemSolverLM::solve_analytical()
     }
   }
   // This is the 6-D velocity to publish
-  double delta_t = 0.01;
-
+  // double delta_t = 0.01;
+  double delta_t = 1;
+  skew_R_rel = (regProblemPtr_->R_ - regProblemPtr_->R_.transpose()) / 2.0;
   geometry_msgs::Twist msg_vel;
   msg_vel.angular.x = -skew_R_rel(2,1)/delta_t;
+  // std::cout<<-regProblemPtr_->t_[0]/delta_t<<std::endl;
   msg_vel.angular.y = -skew_R_rel(0,2)/delta_t;
   msg_vel.angular.z = -skew_R_rel(1,0)/delta_t;
-  msg_vel.linear.x = -dt(0)/delta_t;
-  msg_vel.linear.y = -dt(1)/delta_t;
-  msg_vel.linear.z = -dt(2)/delta_t;
+  msg_vel.linear.x = -regProblemPtr_->t_[0]/delta_t;
+  msg_vel.linear.y = -regProblemPtr_->t_[1]/delta_t;
+  msg_vel.linear.z = -regProblemPtr_->t_[2]/delta_t;
   evs_pub_.publish(msg_vel);
 
 
