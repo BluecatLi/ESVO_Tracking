@@ -73,7 +73,7 @@ esvo_Tracking::esvo_Tracking(
   cam_omni = CameraOmni(YAML::LoadFile(camIntrinsicPath_));
   // std::cout<<"The camera intrinsic model is "<<cam_omni.xi<<" "<<cam_omni.px<< " "<< cam_omni.k[4]<<std::endl;
   cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3]);
-  cam->setActiveDistorsionParameters(true, true, true, true, false);
+  cam->setActiveDistorsionParameters(true, true, false, false, false);
   // std::cout<<cam_omni.px<<" "<<cam_omni.py<<" "<<cam_omni.u0<<" "<<cam_omni.v0<<" "<<cam_omni.xi<<std::endl;
   moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Related/Dependency/ogre-1.12.2/OgreConfigs/");
   moteur->init(); 
@@ -286,7 +286,7 @@ void esvo_Tracking::TrackingLoop()
     LOG(INFO) << "------------------------------------------------------------";
     LOG(INFO) << "------------------------------------------------------------";
 #endif
-  // cv::waitKey(0);
+  cv::waitKey(0);
     // r.sleep();
   }// while
 

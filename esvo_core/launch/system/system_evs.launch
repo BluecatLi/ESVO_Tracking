@@ -44,7 +44,7 @@
     args="-d $(find esvo_core)/esvo_system.rviz" /> -->
 
 
-  <include file="$(find prophesee_ros_driver)/launch/prophesee_publisher.launch" />
+  <!-- <include file="$(find prophesee_ros_driver)/launch/prophesee_publisher.launch" /> -->
 
 
   <include file="$(find esvo_time_surface)/launch/rosbag_launcher/bobbin/prophesee_calib_info.launch" />

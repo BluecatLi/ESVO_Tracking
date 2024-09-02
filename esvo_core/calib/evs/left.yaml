@@ -9,7 +9,7 @@ distortion_model: plumb_bob
 distortion_coefficients:
   rows: 1
   cols: 4
-  data: [0.03533682386, -1.547107714, 6.74242790, 0.001566065726]
+  data: [-0.06633639547, 0.03400850625, 0, 0.]
 rectification_matrix:
   rows: 3
   cols: 3
