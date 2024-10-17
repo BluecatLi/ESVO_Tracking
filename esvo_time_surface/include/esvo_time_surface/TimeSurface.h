@@ -151,6 +151,7 @@ private:
   ros::Subscriber sync_topic_;
   image_transport::Publisher time_surface_pub_, pointSet_pub_;
   cv::Mat pointSet;
+  cv::Mat prev_TS;
 
   // online parameters
   bool bCamInfoAvailable_;
@@ -181,7 +182,7 @@ private:
 
   int evt_persec = 0;
   int evt_ctr = 0;
-
+  
   cv::Mat representation_SILC_;
   // EventQueue InvolvedEvents_;
 

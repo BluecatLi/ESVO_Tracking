@@ -2,7 +2,7 @@
   <!-- ROS BAG -->
   <rosparam param="/use_sim_time">true</rosparam>
   <node pkg="rosbag" type="play" name="play" output="screen" required="true"
-    args="/home/yufan/Data/2024/0730/rec_0730_1.bag -r 1.0 --clock">
+    args="/home/yufan/Data/2024/0910/rec_box_1.bag -r 0.2 --clock">
   </node>
 
 </launch>

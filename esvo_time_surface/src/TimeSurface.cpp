@@ -42,7 +42,9 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   
 
   sync_time_ = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
-  pointSet = cv::imread("/home/yufan/Data/experiments/ESVO/EVS/edgemap.png", 0);
+  // pointSet = cv::imread("/home/yufan/Data/experiments/ESVO/EVS/edgemap_box.png", 0);
+  pointSet = cv::imread("/home/yufan/Data/2024/0910/edgemap_box.png", 0);
+  prev_TS = cv::Mat::zeros(sensor_size_, CV_8UC1);
 }
 
 TimeSurface::~TimeSurface()
@@ -342,7 +344,6 @@ void TimeSurface::createTimeSurfaceAtTime_hyperthread(const ros::Time& external_
     cv_image.header.stamp = external_sync_time;
     time_surface_pub_.publish(cv_image.toImageMsg());
   }
-  cv::Mat ts_mask = time_surface_map;
     //   if (pointSet.type() != CV_64F || time_surface_map.type() != CV_64F) {
     //     std::cerr << "Matrices must be of type CV_64F (double)." << std::endl;
     //     return;
@@ -371,33 +372,102 @@ void TimeSurface::createTimeSurfaceAtTime_hyperthread(const ros::Time& external_
   //   r += "C";
   //   r += (chans + '0');
   // std::cout<<r<<std::endl;
-  for (int i = 0; i < sensor_size_.height; ++i) {
-        for (int j = 0; j < sensor_size_.width; ++j) {
-            if (pointSet.at<uchar>(i, j) != 0) { // Assuming the matrices are of type CV_8U
-                ts_mask.at<uchar>(i, j) = 255;
-                // std::cout<<"Bulabula"<<std::endl;
-            }
-        }
-    }
-  std::stringstream ss;
-  ss << std::setw(10) << std::setfill('0') << external_sync_time.sec << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
-  // return ss.str();
-  std::string filename = "/home/yufan/Data/2024/0806/" + ss.str() + ".png";
-  cv::imwrite(filename, time_surface_map);
+
+
+
   cv_image.image = time_surface_map.clone();
   // std::cout<<pointSet<<std::endl;
+  cv_bridge::CvImage cv_image2, cv_image3;
+  cv_image2.encoding = cv_image.encoding;
+  cv_image2.header.stamp = external_sync_time;
+  cv::remap(cv_image.image, cv_image2.image, undistort_map1_, undistort_map2_, CV_INTER_LINEAR);
+
+  // if (!cv_image2.image.empty() && !prev_TS.empty()) {
+  // cv_image2.image.convertTo(cv_image2.image, CV_32F);
+  // prev_TS.convertTo(prev_TS, CV_32F);
+  // cv_image2.image = 0.5 * cv_image2.image + 0.25 * prev_TS;
+  
+  // cv::normalize(cv_image2.image, cv_image2.image, 0, 255, cv::NORM_MINMAX);
+  // cv_image2.image.convertTo(cv_image2.image, CV_8UC1);
+  // prev_TS = cv_image2.image;
+
+  // }
+  //Save the TSs with pointset
+  cv::Mat ts_mask = cv_image2.image;  
+
+  //   uchar depth = pointSet.type() & CV_MAT_DEPTH_MASK;
+  //     std::string r;
+  //     switch (depth) {
+  //     case CV_8U:  r = "8U"; break;
+  //     case CV_8S:  r = "8S"; break;
+  //     case CV_16U: r = "16U"; break;
+  //     case CV_16S: r = "16S"; break;
+  //     case CV_32S: r = "32S"; break;
+  //     case CV_32F: r = "32F"; break;
+  //     case CV_64F: r = "64F"; break;
+  //     default:     r = "User"; break;
+  // }
+  //   uchar chans = 1 + (ts_mask.type() >> CV_CN_SHIFT);
+  //   r += "C";
+  //   r += (chans + '0');
+  // std::cout<<r<<std::endl;
+
+  // for (int i = 0; i < sensor_size_.height; ++i) {
+  //       for (int j = 0; j < sensor_size_.width; ++j) {
+  //           if (pointSet.at<uchar>(i, j) != 0) { // Assuming the matrices are of type CV_8U
+  //               ts_mask.at<uchar>(i, j) = 255;
+  //               // std::cout<<"Bulabula"<<std::endl;
+  //           }
+  //       }
+  //   }
+  // std::stringstream ss;
+  // ss << std::setw(10) << std::setfill('0') << external_sync_time.sec << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
+  // std::string filename = "/home/yufan/Data/2024/0910/exp1/" + ss.str() + ".png";
+  // cv::imwrite(filename, ts_mask);
+
+
+  // cv::Mat binaryMask;
+  // cv::threshold(ts_mask, binaryMask, 10, 1, cv::THRESH_BINARY);
+  // cv::Mat disField;
+  // cv::distanceTransform(1-binaryMask, disField, cv::DIST_L2, 5);
+  // for (int y = 0; y < disField.rows; y++) {
+  //       for (int x = 0; x < disField.cols; x++) {
+  //           if (disField.at<float>(y, x) > 20) {
+  //               disField.at<float>(y, x) = 0; // Set to 0 if distance > 10
+  //           }
+  //           else (disField.at<float>(y, x) = 20 - disField.at<float>(y, x));
+  //       }
+  //   }
+  // cv::normalize(disField, disField, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+  //   for (int i = 0; i < sensor_size_.height; ++i) {
+  //       for (int j = 0; j < sensor_size_.width; ++j) {
+  //           if (ts_mask.at<uchar>(i, j) == 0) { // Assuming the matrices are of type CV_8U
+  //               ts_mask.at<uchar>(i, j) = disField.at<uchar>(i, j);
+  //               // std::cout<<"Bulabula"<<std::endl;
+  //           }
+  //           // if (pointSet.at<uchar>(i, j) != 0) { // Assuming the matrices are of type CV_8U
+  //           //     ts_mask.at<uchar>(i, j) = 255;
+  //           //     std::cout<<"Bulabula"<<std::endl;
+  //           // }
+  //       }
+  //   }
+  // std::stringstream ss;
+  // ss << std::setw(10) << std::setfill('0') << external_sync_time.sec << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
+  // std::string filename = "/home/yufan/Data/2024/0910/newRepre.png";
+  // cv::imwrite(filename, ts_mask);
+
+  cv_image2.image =  ts_mask;
+
+    
   if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
   {
-    cv_bridge::CvImage cv_image2, cv_image3;
-    cv_image2.encoding = cv_image.encoding;
-    cv_image2.header.stamp = external_sync_time;
-    cv::remap(cv_image.image, cv_image2.image, undistort_map1_, undistort_map2_, CV_INTER_LINEAR);
     time_surface_pub_.publish(cv_image2.toImageMsg());
     cv_image3.encoding = cv_image.encoding;
     cv_image3.header.stamp = external_sync_time;
     cv_image3.image = pointSet.clone();
     pointSet_pub_.publish(cv_image3.toImageMsg());
   }
+  // cv::waitKey(0);
 }
 
 void TimeSurface::thread(Job &job)
@@ -514,10 +584,12 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
   // else
   //   sync_time_ = msg->data;
 
-    ros::Time currentTime = ros::Time::now();
-    std::stringstream ss;
-    ss << std::fixed << std::setprecision(9) << currentTime.toSec();
-    std::cout<<ss.str()<<std::endl;
+    // ros::Time currentTime = ros::Time::now();
+    // std::stringstream ss;
+    // ss << std::fixed << std::setprecision(9) << currentTime.toSec();
+    // std::cout<<ss.str()<<std::endl;
+  // evt_persec++;
+  // std::cout<<evt_persec<<std::endl;
   if(events_.size() < 2000)
     return;
 #ifdef ESVO_TS_LOG
@@ -532,8 +604,8 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
   //   evt_persec = events_.size();
   // }
   // ros::Duration delta_t(0.01);
-  // if((events_.back().ts - sync_time_).toSec() < 0.01)
-  //   return;
+  if((events_.back().ts - sync_time_).toSec() < 0.)
+    return;
   // sync_time_ = sync_time_ + delta_t;
   sync_time_ = events_.back().ts;
   if((events_.back().ts-events_.front().ts).toSec() > 0.1)
@@ -644,6 +716,8 @@ void TimeSurface::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& ms
       RectCoordinates(i).x, RectCoordinates(i).y);
   }
   ROS_INFO("Undistorted-Rectified Look-Up Table has been computed.");
+
+  std::cout<<"K parameters are "<<msg->K[0]<<" "<<msg->K[2]<<std::endl;
 }
 
 //modified from 
@@ -664,6 +738,10 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
   // std::cout<<"bulubulu"<<std::endl;
   std::lock_guard<std::mutex> lock(data_mutex_);
 
+#ifdef ESVO_TS_LOG
+    TicToc tt;
+    tt.tic();
+#endif
   if(!bSensorInitialized_)
     init(msg->width, msg->height);
 
@@ -692,12 +770,16 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
   // std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
   // std::cout<<"Event queue size is "<<events_.size()<<std::endl;
   clearEventQueue();
-
+  // evt_persec++;
+  // std::cout<<evt_persec<<std::endl;
   //Yufan added for debug
   // sync_time_ = ttevent.ts;
   // if(NUM_THREAD_TS == 1)
   //   createTimeSurfaceAtTime(sync_time_);
 
+// #ifdef ESVO_TS_LOG
+//     // std::cout << "Event callback takes: " << tt.toc() << " ms."<<std::endl;
+// #endif
 }
 
 void TimeSurface::clearEventQueue()

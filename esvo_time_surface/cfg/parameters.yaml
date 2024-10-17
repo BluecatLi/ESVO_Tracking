@@ -1,8 +1,8 @@
 use_sim_time: False
-start_time_sec: 1722316394
-start_time_nsec: 569641351
+start_time_sec: 1725914355
+start_time_nsec: 995364480
 ignore_polarity: True
 time_surface_mode: 0 # 0: Backward; 1: Forward
-decay_ms: 50
+decay_ms: 25
 median_blur_kernel_size: 1
 max_event_queue_len: 1
