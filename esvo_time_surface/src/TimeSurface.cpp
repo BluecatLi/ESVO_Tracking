@@ -374,7 +374,6 @@ void TimeSurface::createTimeSurfaceAtTime_hyperthread(const ros::Time& external_
   // std::cout<<r<<std::endl;
 
 
-
   cv_image.image = time_surface_map.clone();
   // std::cout<<pointSet<<std::endl;
   cv_bridge::CvImage cv_image2, cv_image3;
@@ -395,6 +394,9 @@ void TimeSurface::createTimeSurfaceAtTime_hyperthread(const ros::Time& external_
   //Save the TSs with pointset
   cv::Mat ts_mask = cv_image2.image;  
 
+  cv::Mat resizedTS;
+  cv::resize(ts_mask, resizedTS, cv::Size(80, 60), 0, 0, cv::INTER_AREA);
+  cv::threshold(resizedTS, resizedTS, 2, 255, cv::THRESH_BINARY);
   //   uchar depth = pointSet.type() & CV_MAT_DEPTH_MASK;
   //     std::string r;
   //     switch (depth) {
@@ -426,38 +428,40 @@ void TimeSurface::createTimeSurfaceAtTime_hyperthread(const ros::Time& external_
   // cv::imwrite(filename, ts_mask);
 
 
-  // cv::Mat binaryMask;
-  // cv::threshold(ts_mask, binaryMask, 10, 1, cv::THRESH_BINARY);
-  // cv::Mat disField;
-  // cv::distanceTransform(1-binaryMask, disField, cv::DIST_L2, 5);
-  // for (int y = 0; y < disField.rows; y++) {
-  //       for (int x = 0; x < disField.cols; x++) {
-  //           if (disField.at<float>(y, x) > 20) {
-  //               disField.at<float>(y, x) = 0; // Set to 0 if distance > 10
-  //           }
-  //           else (disField.at<float>(y, x) = 20 - disField.at<float>(y, x));
-  //       }
-  //   }
-  // cv::normalize(disField, disField, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-  //   for (int i = 0; i < sensor_size_.height; ++i) {
-  //       for (int j = 0; j < sensor_size_.width; ++j) {
-  //           if (ts_mask.at<uchar>(i, j) == 0) { // Assuming the matrices are of type CV_8U
-  //               ts_mask.at<uchar>(i, j) = disField.at<uchar>(i, j);
-  //               // std::cout<<"Bulabula"<<std::endl;
-  //           }
-  //           // if (pointSet.at<uchar>(i, j) != 0) { // Assuming the matrices are of type CV_8U
-  //           //     ts_mask.at<uchar>(i, j) = 255;
-  //           //     std::cout<<"Bulabula"<<std::endl;
-  //           // }
-  //       }
-  //   }
-  // std::stringstream ss;
-  // ss << std::setw(10) << std::setfill('0') << external_sync_time.sec << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
-  // std::string filename = "/home/yufan/Data/2024/0910/newRepre.png";
-  // cv::imwrite(filename, ts_mask);
+  cv::Mat binaryMask;
+  cv::threshold(resizedTS, binaryMask, 5, 1, cv::THRESH_BINARY);
+  cv::Mat disField;
+  cv::distanceTransform(1-binaryMask, disField, cv::DIST_L2, 5);
+  for (int y = 0; y < disField.rows; y++) {
+        for (int x = 0; x < disField.cols; x++) {
+            if (disField.at<float>(y, x) > 5) {
+                disField.at<float>(y, x) = 0; // Set to 0 if distance > 10
+            }
+            else (disField.at<float>(y, x) = 5 - disField.at<float>(y, x));
+        }
+    }
+  cv::normalize(disField, disField, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+
+    for (int i = 0; i < 60; ++i) {
+        for (int j = 0; j < 80; ++j) {
+            if (resizedTS.at<uchar>(i, j) == 0) { // Assuming the matrices are of type CV_8U
+                resizedTS.at<uchar>(i, j) = disField.at<uchar>(i, j);
+                // std::cout<<"Bulabula"<<std::endl;
+            }
+            // if (pointSet.at<uchar>(i, j) != 0) { // Assuming the matrices are of type CV_8U
+            //     ts_mask.at<uchar>(i, j) = 255;
+            //     std::cout<<"Bulabula"<<std::endl;
+            // }
+        }
+    }
+  std::stringstream ss;
+  ss << std::setw(10) << std::setfill('0') << external_sync_time.sec << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
+  std::string filename = "/home/yufan/Data/2024/1018/DF_resized.png";
+  cv::imwrite(filename, resizedTS);
 
   cv_image2.image =  ts_mask;
 
+  cv::waitKey(0);
     
   if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
   {
@@ -467,7 +471,6 @@ void TimeSurface::createTimeSurfaceAtTime_hyperthread(const ros::Time& external_
     cv_image3.image = pointSet.clone();
     pointSet_pub_.publish(cv_image3.toImageMsg());
   }
-  // cv::waitKey(0);
 }
 
 void TimeSurface::thread(Job &job)
@@ -486,7 +489,12 @@ void TimeSurface::thread(Job &job)
       if(pEventTs_[x + y*sensor_size_.width] == 0)
         continue;
       const double dt = job.external_sync_time_.toSec() - pEventTs_[x + y*sensor_size_.width];
-      double expVal = std::exp(-dt / job.decay_sec_);
+      // double expVal = std::exp(-dt / job.decay_sec_);
+      double expVal;
+      if(dt > 0.002)
+        expVal = 0;
+      else
+        expVal = 1;
       // Backward version
       if(time_surface_mode_ == BACKWARD)
         time_surface_map.at<double>(y,x) = expVal;
