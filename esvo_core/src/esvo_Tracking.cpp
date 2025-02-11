@@ -354,6 +354,9 @@ esvo_Tracking::curDataTransferring()
   cur_.t_ = TS_it->first;
   cur_.pTsObs_ = &TS_it->second;
 
+  // std::cout<<"sync time = "<<cur_.t_<<std::endl;
+  // std::cout << "Current time: " << cur_.t_ .sec << " seconds and " 
+  //             << cur_.t_ .nsec << " nanoseconds" << std::endl;
   nh_.getParam("/ESVO_SYSTEM_STATUS", ESVO_System_Status_);
   if(ESVO_System_Status_ == "INITIALIZATION" && ets_ == IDLE)
   {

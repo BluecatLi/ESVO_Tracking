@@ -52,7 +52,7 @@ bool RegProblemSolverLM::resetRegProblem(RefFrame* ref, CurFrame* cur)
   }
   if( ref->vPointXYZPtr_.size() < rpConfigPtr_->BATCH_SIZE_ )
   {
-    LOG(INFO) << "resetRegProblem RESET fails for no enough point cloud in the local map.";
+    LOG(INFO) << "resetRegProblem RESET fails for no enough point cloud in the local map. "<<ref->vPointXYZPtr_.size();
     LOG(INFO) << "The system will be re-initialized";
     return false;
   }
@@ -161,8 +161,8 @@ bool RegProblemSolverLM::solve_analytical()
   Eigen::Vector3d dt;
   while(true)
   {
-    startWhile:
-    std::cout<<"w"<<std::endl;
+    // startWhile:
+    // std::cout<<"w"<<std::endl;
     if(iteration >= rpConfigPtr_->MAX_ITERATION_)
       break;
     regProblemPtr_->setStochasticSampling(
@@ -184,50 +184,53 @@ bool RegProblemSolverLM::solve_analytical()
     // Eigen::Matrix3d dR = tools::cayley2rot(dc);
     // skew_R_rel = (dR - dR.transpose()) / 2.0;
     iteration++;
+    /////////////////////////////////////////////////////////////////
+    // big_iteration = std::floor((iteration - 1) / regProblemPtr_->numBatches_)+1;
 
-    big_iteration = std::floor((iteration - 1) / regProblemPtr_->numBatches_)+1;
+    // size_t width = camSysPtr_->cam_left_ptr_->width_;
+    // size_t height = camSysPtr_->cam_left_ptr_->height_;    
 
-    size_t width = camSysPtr_->cam_left_ptr_->width_;
-    size_t height = camSysPtr_->cam_left_ptr_->height_;    
+    // cv::Mat reprojMap_left = cv::Mat(cv::Size(width, height), CV_8UC1, cv::Scalar(0));
+    // // std::cout<<"0"<<std::endl;
+    // // if(regProblemPtr_->cur_->pTsObs_->TS_negative_left_.empty())
+    // //   continue;
+    //     if (regProblemPtr_->cur_->pTsObs_->TS_negative_left_.rows() != height ||
+    //     regProblemPtr_->cur_->pTsObs_->TS_negative_left_.cols() != width) {
+    //     throw std::runtime_error("Dimension mismatch between TS_negative_left_ and reprojMap_left");
+    // }
+    // cv::eigen2cv(regProblemPtr_->cur_->pTsObs_->TS_negative_left_, reprojMap_left);
+    // reprojMap_left.convertTo(reprojMap_left, CV_8UC1);
+    // cv::cvtColor(reprojMap_left, reprojMap_left, CV_GRAY2BGR);
+    // // std::cout<<"1"<<std::endl;
 
-    cv::Mat reprojMap_left = cv::Mat(cv::Size(width, height), CV_8UC1, cv::Scalar(0));
-    // std::cout<<"0"<<std::endl;
-        if (regProblemPtr_->cur_->pTsObs_->TS_negative_left_.rows() != height ||
-        regProblemPtr_->cur_->pTsObs_->TS_negative_left_.cols() != width) {
-        throw std::runtime_error("Dimension mismatch between TS_negative_left_ and reprojMap_left");
-    }
-    cv::eigen2cv(regProblemPtr_->cur_->pTsObs_->TS_negative_left_, reprojMap_left);
-    reprojMap_left.convertTo(reprojMap_left, CV_8UC1);
-    cv::cvtColor(reprojMap_left, reprojMap_left, CV_GRAY2BGR);
-    // std::cout<<"1"<<std::endl;
+    // // project 3D points to current frame
+    // Eigen::Matrix3d R_cur_ref =  regProblemPtr_->R_.transpose();
+    // Eigen::Vector3d t_cur_ref = -regProblemPtr_->R_.transpose() * regProblemPtr_->t_;
 
-    // project 3D points to current frame
-    Eigen::Matrix3d R_cur_ref =  regProblemPtr_->R_.transpose();
-    Eigen::Vector3d t_cur_ref = -regProblemPtr_->R_.transpose() * regProblemPtr_->t_;
-
-    size_t numVisualization = std::min(regProblemPtr_->ResItems_.size(), (size_t)3000);
-    // std::cout<<"2"<<std::endl;
-    for(size_t i = 0; i < numVisualization; i++)
-    {
-      ResidualItem & ri = regProblemPtr_->ResItems_[i];
-      Eigen::Vector3d p_3D = R_cur_ref * ri.p_ + t_cur_ref;
-      Eigen::Vector2d p_img_left;
-      camSysPtr_->cam_left_ptr_->world2Cam(p_3D, p_img_left);
-      double z = ri.p_[2];
-      if(p_img_left(0) < 0 || p_img_left(1) < 0 || p_img_left(0) > 640 || p_img_left(1) > 480)
-        goto startWhile;
-      visualizor_.DrawPoint(1.0 / z, 1.0 / z_min_, 1.0 / z_max_,
-                            Eigen::Vector2d(p_img_left(0), p_img_left(1)), reprojMap_left);
-    }
+    // size_t numVisualization = std::min(regProblemPtr_->ResItems_.size(), (size_t)3000);
+    // // std::cout<<"2"<<std::endl;
+    // for(size_t i = 0; i < numVisualization; i++)
+    // {
+    //   ResidualItem & ri = regProblemPtr_->ResItems_[i];
+    //   Eigen::Vector3d p_3D = R_cur_ref * ri.p_ + t_cur_ref;
+    //   Eigen::Vector2d p_img_left;
+    //   camSysPtr_->cam_left_ptr_->world2Cam(p_3D, p_img_left);
+    //   double z = ri.p_[2];
+    //   if(p_img_left(0) < 0 || p_img_left(1) < 0 || p_img_left(0) > 640 || p_img_left(1) > 480)
+    //     goto startWhile;
+    //   visualizor_.DrawPoint(1.0 / z, 1.0 / z_min_, 1.0 / z_max_,
+    //                         Eigen::Vector2d(p_img_left(0), p_img_left(1)), reprojMap_left);
+    // }
     // std::cout<<"3"<<std::endl;
 
-    std::stringstream ss;
-    ss << big_iteration << "_" << iteration % regProblemPtr_->numBatches_;
-    std::string filename = "/home/yufan/Data/2024/0910/exp1/" + ss.str() + ".jpg";
-    std::cout<<filename<<std::endl;
-    if(!reprojMap_left.empty())
-      cv::imwrite(filename, reprojMap_left);
-    std::cout<<filename<<std::endl;
+    // std::stringstream ss;
+    // ss << big_iteration;
+    // std::string filename = "/home/yufan/Data/2024/0910/exp2/" + ss.str() + ".jpg";
+    // std::cout<<filename<<std::endl;
+    // if(!reprojMap_left.empty())
+    //   cv::imwrite(filename, reprojMap_left);
+    // std::cout<<filename<<std::endl;
+    ///////////////////////////////////////////////////////////////
     // std::cout<<"3"<<std::endl;
     nfev += lm.nfev;
     if(status == 2 || status == 3){
@@ -235,7 +238,11 @@ bool RegProblemSolverLM::solve_analytical()
       break;
     }
   }
-    cv::waitKey(0);
+  // std::cout << "Current time: " << regProblemPtr_->cur_->t_.sec << " seconds and " 
+  //             << regProblemPtr_->cur_->t_.nsec << " nanoseconds" << std::endl;
+
+  std::cout<<"sync time = "<<regProblemPtr_->cur_->t_<<std::endl;
+  // cv::waitKey(0);
   // This is the 6-D velocity to publish
   // double delta_t = 0.01;
   double delta_t = 1;
@@ -275,7 +282,7 @@ bool RegProblemSolverLM::solve_analytical()
       visualizor_.DrawPoint(1.0 / z, 1.0 / z_min_, 1.0 / z_max_,
                             Eigen::Vector2d(p_img_left(0), p_img_left(1)), reprojMap_left);
     }
-      // cv::imwrite("/home/yufan/Data/2024/0807/reproj.jpg", reprojMap_left);
+      // cv::imwrite("/home/yufan/Data/2024/0910/exp2/reproj.jpg", reprojMap_left);
   
     std_msgs::Header header;
     header.stamp = regProblemPtr_->cur_->t_;
