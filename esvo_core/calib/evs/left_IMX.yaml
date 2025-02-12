@@ -1,15 +1,15 @@
-image_width: 640
-image_height: 480
-camera_name: Prophesee_Gen3.1
+image_width: 160
+image_height: 90
+camera_name: IMX_636
 camera_matrix:
   rows: 3
   cols: 3
-  data: [580.706754, 0, 310.3476634, 0, 580.5467001, 215.2908539, 0, 0, 1]
+  data: [264.65945425, 0, 83.88160995, 0, 264.080351125, 52.7921530375, 0, 0, 1]
 distortion_model: plumb_bob
 distortion_coefficients:
   rows: 1
   cols: 4
-  data: [-0.06633639547, 0.03400850625, 0, 0.]
+  data: [-0.2062680245, 0, 0, 0.]
 rectification_matrix:
   rows: 3
   cols: 3
@@ -19,7 +19,7 @@ rectification_matrix:
 projection_matrix:
   rows: 3
   cols: 4
-  data: [580.706754, 0, 310.3476634, 0, 0, 580.5467001, 215.2908539, 0, 0, 0, 1, 0]
+  data: [264.65945425, 0, 83.88160995, 0, 0, 264.080351125, 52.7921530375, 0, 0, 0, 1, 0]
 T_right_left:
   rows: 3
   cols: 4
