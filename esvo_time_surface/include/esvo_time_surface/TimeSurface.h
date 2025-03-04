@@ -128,6 +128,7 @@ private:
   void createTimeSurfaceAtTime(const ros::Time& external_sync_time);// single thread version (This is enough for DAVIS240C and DAVIS346)
   void createTimeSurfaceAtTime_hyperthread(const ros::Time& external_sync_time); // hyper thread version (This is for higher resolution)
   void thread(Job& job);
+  void createEventAccumulation(int N, const ros::Time& external_sync_time);
 
   // callbacks
   void syncCallback(const std_msgs::TimeConstPtr& msg);
@@ -163,6 +164,7 @@ private:
   bool bSensorInitialized_;
 
   bool bPropheseeUsed_ = false;
+  int eventNumber_;
 
   // offline parameters
   double decay_ms_;
@@ -174,7 +176,7 @@ private:
   // containers
   EventQueue events_;
   std::shared_ptr<EventQueueMat> pEventQueueMat_;
-  static const size_t SIZE = 480*640;
+  static const size_t SIZE = 640*480;
   std::array<double, SIZE> pEventTs_ = {0.0};
 
   // thread mutex
