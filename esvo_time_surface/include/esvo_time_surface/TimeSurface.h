@@ -129,6 +129,7 @@ private:
   void createTimeSurfaceAtTime_hyperthread(const ros::Time& external_sync_time); // hyper thread version (This is for higher resolution)
   void thread(Job& job);
   void createEventAccumulation(int N, const ros::Time& external_sync_time);
+  void createEventAccumulation2(int N, const ros::Time& external_sync_time);
 
   // callbacks
   void syncCallback(const std_msgs::TimeConstPtr& msg);
