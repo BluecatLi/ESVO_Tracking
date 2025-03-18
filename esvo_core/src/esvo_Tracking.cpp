@@ -75,7 +75,7 @@ esvo_Tracking::esvo_Tracking(
   cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3]);
   cam->setActiveDistorsionParameters(true, false, false, false, false);
   // std::cout<<cam_omni.px<<" "<<cam_omni.py<<" "<<cam_omni.u0<<" "<<cam_omni.v0<<" "<<cam_omni.xi<<std::endl;
-  moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Related/Dependency/ogre-1.12.2/OgreConfigs/");
+  moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Dependency/ogre-1.12.2/OgreConfigs/");
   moteur->init(); 
   moteur->loadPointCloud("objecttotrack", evsModelPath_);
   moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
@@ -122,7 +122,7 @@ esvo_Tracking::esvo_Tracking(
       }
   }
 
-    // cv::imwrite("/home/yufan/Data/2024/0506/kf.png", kf_I);
+    // cv::imwrite("/home/yufan/Data/2025/0311/kf.png", kf_I);
   cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
   mMin = 0;
   psFlag = true;
@@ -210,6 +210,7 @@ void esvo_Tracking::TrackingLoop()
       }
 
       // std::cout<<cur_.t_.toSec() - TS_history_.rbegin()->first.toSec()<<std::endl;
+      // std::cout<<TS_history_.rbegin()->first.toSec()<<std::endl;
       if(cur_.t_.toSec() < TS_history_.rbegin()->first.toSec())// new observation arrived
       {
         // if(ref_.t_.toSec() >= TS_history_.rbegin()->first.toSec())
@@ -219,10 +220,16 @@ void esvo_Tracking::TrackingLoop()
           exit(-1);
         }
         if(!curDataTransferring())
+        {
+          // std::cout<<"Case1"<<std::endl;
           continue;
+        }
       }
       else
+      {
+        // std::cout<<"Case2"<<std::endl;
         continue;
+      }
     }
     // create new regProblem
 
@@ -443,6 +450,7 @@ esvo_Tracking::timeSurfaceCallback(
   const sensor_msgs::ImageConstPtr &time_surface_left,
   const sensor_msgs::ImageConstPtr &time_surface_right)
 {
+  // std::cout<<"Called"<<std::endl;
   std::lock_guard<std::mutex> lock(data_mutex_);
   cv_bridge::CvImagePtr cv_ptr_left, cv_ptr_right;
   try
@@ -473,6 +481,7 @@ esvo_Tracking::timeSurfaceCallback(
 void 
 esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
 {
+  // std::cout<<"This called"<<std::endl;
   if(psFlag == false)
     return;
   cv::Mat img;

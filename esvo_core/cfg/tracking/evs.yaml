@@ -6,8 +6,8 @@ tracking_rate_hz: 100
 patch_size_X: 1
 patch_size_Y: 1
 kernelSize: 5
-MAX_REGISTRATION_POINTS: 89
-BATCH_SIZE: 89
+MAX_REGISTRATION_POINTS: 3000
+BATCH_SIZE: 600
 MAX_ITERATION: 10
 LSnorm: Huber #l2, Huber
 huber_threshold: 50
