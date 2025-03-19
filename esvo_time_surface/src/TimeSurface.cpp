@@ -641,16 +641,12 @@ void TimeSurface::createEventAccumulation(int N, const ros::Time& external_sync_
   std::cout<<1000*(lastEv.ts-firstEv.ts).toSec()<<std::endl;
   event_accumulation.convertTo(event_accumulation, CV_8U);
   cv::Mat outputImage;
-  int kernelSize = 3; // Kernel size must be odd and greater than 1 (e.g., 3, 5, 7)
+  int kernelSize = 1; // Kernel size must be odd and greater than 1 (e.g., 3, 5, 7)
     cv::medianBlur(event_accumulation, outputImage, kernelSize);
-  cv::Mat resizedTS;
-  cv::Mat laplacian, abs_laplacian;
-    cv::Laplacian(outputImage, laplacian, CV_16S, 3);  // Apply Laplacian
-    cv::convertScaleAbs(laplacian, outputImage);
-  // cv::resize(outputImage, resizedTS, cv::Size(160, 90), 0, 0, cv::INTER_AREA);
-  // cv::resize(outputImage, resizedTS, cv::Size(160, 120), 0, 0, cv::INTER_AREA);
-  // cv::threshold(resizedTS, resizedTS, 1, 255, cv::THRESH_BINARY);  
-
+  // cv::Mat temp;
+  // cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
+  // assignDistances(outputImage, disI, 10);
+  // cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
 
 
@@ -735,6 +731,83 @@ void TimeSurface::createEventAccumulation(int N, const ros::Time& external_sync_
     cv_image3.image = pointSet.clone();
     pointSet_pub_.publish(cv_image3.toImageMsg());
   }
+}
+
+
+void TimeSurface::createEventDistanceField(int N, const ros::Time& external_sync_time)
+{
+  cv::Mat event_accumulation;
+  event_accumulation = cv::Mat::zeros(sensor_size_, CV_64F);
+  auto it = events_.rbegin(); // Reverse iterator pointing to the last element
+  const dvs_msgs::Event& lastEv = *it;
+  for (int i = 0; i < N && it != events_.rend(); ++i, ++it) {
+      const dvs_msgs::Event& event = *it;
+      // std::cout<<event.y<<" "<<event.x<<std::endl;
+      event_accumulation.at<double>(event.y,event.x) = 255;
+  }
+  const dvs_msgs::Event& firstEv = *it;
+  // std::cout<<1000*(lastEv.ts-firstEv.ts).toSec()<<std::endl;
+  event_accumulation.convertTo(event_accumulation, CV_8U);
+  cv::Mat outputImage;
+  int kernelSize = 1; // Kernel size must be odd and greater than 1 (e.g., 3, 5, 7)
+    cv::medianBlur(event_accumulation, outputImage, kernelSize);
+  cv::Mat temp;
+  cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
+  int ctr = 0;
+  assignDistances(outputImage, disI, 10, ctr);
+  // std::cout<<"Point number: "<<ctr<<std::endl;
+  cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+
+
+  // // //Save images for debug
+  // std::stringstream ss;
+  // ss << std::setw(10) << std::setfill('0') << external_sync_time.sec << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
+  // std::string filename = "/home/yufan/Data/2025/0318/exp1/DF3/" + ss.str() + ".png";
+  // cv::imwrite(filename, outputImage);
+
+
+  static cv_bridge::CvImage cv_image, cv_image3;
+  cv_image.encoding = "mono8";
+  cv_image.image = outputImage.clone();
+  cv_image.header.stamp = external_sync_time;
+  if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
+  {
+    time_surface_pub_.publish(cv_image.toImageMsg());
+    cv_image3.encoding = cv_image.encoding;
+    cv_image3.header.stamp = external_sync_time;
+    cv_image3.image = pointSet.clone();
+    pointSet_pub_.publish(cv_image3.toImageMsg());
+  }
+}
+
+void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr) 
+{
+  CV_Assert(S.size() == I.size() && S.type() == CV_8U && I.type() == CV_64F);
+  int radius = k / 2;
+  int rows = S.rows;
+  int cols = S.cols;
+  int laradius = radius*radius;
+  // Iterate over all pixels in S
+  for (int u = 0; u < rows; ++u) {
+      for (int v = 0; v < cols; ++v) {
+          if (S.at<uchar>(u, v) > 0) {
+              // Iterate over kernel neighborhood
+              ctr++;
+              // std::cout<<ctr<<std::endl;
+              for (int i = -radius; i <= radius; ++i) {
+                  for (int j = -radius; j <= radius; ++j) {
+                      int ni = u + i;
+                      int nj = v + j;
+                      if(ni < 0 || ni > rows -1 || nj < 0 || nj > cols - 1)
+                        continue;
+                        double dist = double(abs(i*i) + abs(j*j));
+                        I.at<double>(ni, nj) += laradius - dist;
+                  }
+              }
+          }
+      }
+  }
+
 }
 
 void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync_time)
@@ -870,7 +943,7 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
   if((events_.back().ts-events_.front().ts).toSec() > 0.5)
     return;
   // std::cout<<"Event gap is      "<<(events_.back().ts-events_.front().ts).toSec()<<std::endl;
-  std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
+  // std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
   // ros::Time tmp = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
   // std::cout<<"sync time = "<<sync_time_<<std::endl;
   // std::cout<<tmp<<std::endl;
@@ -879,7 +952,7 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
       createTimeSurfaceAtTime(sync_time_);
     if(NUM_THREAD_TS > 1)
       // createTimeSurfaceAtTime_hyperthread(sync_time_);
-      createEventAccumulation(eventNumber_, sync_time_);
+      createEventDistanceField(eventNumber_, sync_time_);
 #ifdef ESVO_TS_LOG
     LOG(INFO) << "Time Surface map's creation takes: " << tt.toc() << " ms.";
 #endif

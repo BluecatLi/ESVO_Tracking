@@ -130,7 +130,8 @@ private:
   void thread(Job& job);
   void createEventAccumulation(int N, const ros::Time& external_sync_time);
   void createEventAccumulation2(int N, const ros::Time& external_sync_time);
-
+  void createEventDistanceField(int N, const ros::Time& external_sync_time);
+  void assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr);
   // callbacks
   void syncCallback(const std_msgs::TimeConstPtr& msg);
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
