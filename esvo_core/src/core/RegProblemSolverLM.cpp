@@ -241,7 +241,7 @@ bool RegProblemSolverLM::solve_analytical()
   // std::cout << "Current time: " << regProblemPtr_->cur_->t_.sec << " seconds and " 
   //             << regProblemPtr_->cur_->t_.nsec << " nanoseconds" << std::endl;
 
-  std::cout<<"sync time = "<<regProblemPtr_->cur_->t_<<std::endl;
+  // std::cout<<"sync time = "<<regProblemPtr_->cur_->t_<<std::endl;
   // cv::waitKey(0);
   // This is the 6-D velocity to publish
   // double delta_t = 0.01;
