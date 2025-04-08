@@ -121,7 +121,8 @@ esvo_Tracking::esvo_Tracking(
           kf_depth.at<double>(i, j) = double(kf_omni.Idepth[i][j]);
       }
   }
-
+  cv::GaussianBlur(kf_I, blurred, cv::Size(5, 5), 1.4);
+  cv::Canny(kf_I, edges, 50, 150);
     // cv::imwrite("/home/yufan/Data/2025/0311/kf.png", kf_I);
   cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
   mMin = 0;
@@ -306,9 +307,12 @@ void esvo_Tracking::TrackingLoop()
       _mkdir(resultPath_.c_str());
       LOG(INFO) << "The directory has been created!!!";
     }
+    LOG(INFO) << "[DEBUG] resultPath_ = [" << resultPath_ << "]";
+
     LOG(INFO) << "pose size: " << lPose_.size();
     LOG(INFO) << "refPCMap_.size(): " << refPCMap_.size() << ", TS_history_.size(): " << TS_history_.size();
-    saveTrajectory(resultPath_ + "result.txt");
+    // saveTrajectory(resultPath_ + "result.txt");/home/yufan/Data/2025/0405/
+    saveTrajectory("/home/yufan/Data/2025/0405/result.txt");
   }
 }
 
@@ -488,6 +492,7 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
   cv_bridge::CvImagePtr cv_ptr_ps;
   cv_ptr_ps = cv_bridge::toCvCopy(point_set, sensor_msgs::image_encodings::MONO8);
   cv_ptr_ps->image.copyTo(img);
+  // img = edges;
   // std::cout<<img.type()<<std::endl;
   cv::cvtColor(img, img, CV_GRAY2BGR);
   // std::cout<<img<<std::endl;
@@ -501,6 +506,8 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
             {
                 double z = kf_depth.at<double>(i,j);
                 // std::cout<<z<<" ";
+                // if(z<0)
+                //   continue;
                 visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
                 // ctr ++;
                 Eigen::Vector3d p_world;

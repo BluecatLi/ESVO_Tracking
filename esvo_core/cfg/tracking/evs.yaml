@@ -6,15 +6,15 @@ tracking_rate_hz: 100
 patch_size_X: 1
 patch_size_Y: 1
 kernelSize: 5
-MAX_REGISTRATION_POINTS: 8000
-BATCH_SIZE: 1250
+MAX_REGISTRATION_POINTS: 5000
+BATCH_SIZE: 1000
 MAX_ITERATION: 10
 LSnorm: Huber #l2, Huber
 huber_threshold: 50
 MIN_NUM_EVENTS: 100
 RegProblemType: 1 #( 0 numerical; 1 analytical)
-SAVE_TRAJECTORY: False
-PATH_TO_SAVE_TRAJECTORY: "/home/yufan/Data/experiments/ESVO/ESVO_result/" # CHANGE THIS PATH
+SAVE_TRAJECTORY: True
+PATH_TO_SAVE_TRAJECTORY: "/home/yufan/Data/2025/0405/"
 VISUALIZE_TRAJECTORY: True
 PATH_TO_LOAD_3DModel: "/home/yufan/Data/Model/3_cracker_box.ply"
 PATH_TO_CAMERA_INTRINSICS: "/home/yufan/Data/experiments/Bobbin/omni.yaml" 

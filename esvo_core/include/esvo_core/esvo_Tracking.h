@@ -163,6 +163,9 @@ class esvo_Tracking
   KeyframeOmni kf_omni;
   cv::Mat kf_I, kf_depth, kf_grad, kf_gradient;
   cv::Mat pointSet;
+
+  cv::Mat edges;
+  cv::Mat blurred;
   Visualization visualizor_;
 
   cv::Point minP, maxP;
