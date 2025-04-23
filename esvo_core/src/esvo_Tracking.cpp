@@ -510,11 +510,38 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
             if (edges.at<uchar>(i,j) == 255 )
             {
                 double z = kf_depth.at<double>(i,j);
+
+                if (z == -1.0)
+                {
+
+                  ctr ++;
+                    bool found = false;
+                    for (int di = -3; di <= 3 && !found; ++di)
+                    {
+                        for (int dj = -3; dj <= 3 && !found; ++dj)
+                        {
+                            int ni = i + di;
+                            int nj = j + dj;
+                            if (ni >= 0 && ni < kf_depth.rows && nj >= 0 && nj < kf_depth.cols)
+                            {
+                                double neighbor_z = kf_depth.at<double>(ni, nj);
+                                if (neighbor_z > 0)
+                                {
+                                    z = neighbor_z;
+                                    found = true;
+                                }
+                            }
+                        }
+                    }
+                    // If found, assign the new depth value
+                    // if (found)
+                    //     kf_depth.at<double>(i, j) = z;
+                }
+
                 // std::cout<<z<<" ";
                 // if(z<0)
                 //   continue;
                 visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
-                ctr ++;
                 Eigen::Vector3d p_world;
                 Eigen::Vector2d p_cam(j, i);
                 camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
