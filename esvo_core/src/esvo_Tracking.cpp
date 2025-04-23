@@ -121,9 +121,10 @@ esvo_Tracking::esvo_Tracking(
           kf_depth.at<double>(i, j) = double(kf_omni.Idepth[i][j]);
       }
   }
-  cv::GaussianBlur(kf_I, blurred, cv::Size(5, 5), 1.4);
-  cv::Canny(kf_I, edges, 50, 150);
-    // cv::imwrite("/home/yufan/Data/2025/0311/kf.png", kf_I);
+  cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
+  cv::Canny(kf_I, edges, 150, 300);
+
+    // cv::imwrite("/home/yufan/Data/2025/0414/edges.png", edges);
   cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
   mMin = 0;
   psFlag = true;
@@ -492,24 +493,28 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
   cv_bridge::CvImagePtr cv_ptr_ps;
   cv_ptr_ps = cv_bridge::toCvCopy(point_set, sensor_msgs::image_encodings::MONO8);
   cv_ptr_ps->image.copyTo(img);
-  // img = edges;
+  img = edges;
+
+  int count_255 = cv::countNonZero(img == 255);
+
+  std::cout << "Number of pixels with value 255: " << count_255 << std::endl;
   // std::cout<<img.type()<<std::endl;
   cv::cvtColor(img, img, CV_GRAY2BGR);
   // std::cout<<img<<std::endl;
-  // int ctr = 0;
+  int ctr = 0;
   for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)
         {
             // if ((abs(kf.gradient.at<Vector2d>(i, j)[0] * kf.gradient.at<Vector2d>(i, j)[1]) > 10) && (kf.depth.at<double>(i, j) > 0))
-            if (img.at<cv::Vec3b>(i,j)[1] == 255 )
+            if (edges.at<uchar>(i,j) == 255 )
             {
                 double z = kf_depth.at<double>(i,j);
                 // std::cout<<z<<" ";
                 // if(z<0)
                 //   continue;
                 visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
-                // ctr ++;
+                ctr ++;
                 Eigen::Vector3d p_world;
                 Eigen::Vector2d p_cam(j, i);
                 camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
@@ -523,7 +528,7 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
   
   refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
   // std::cout<<refPCMap_.size()<<std::endl;
-  // std::cout<<"The point set number is "<<ctr<<std::endl;
+  std::cout<<"The point set number is "<<ctr<<std::endl;
   std_msgs::Header header;
   header.stamp = cv_ptr_ps->header.stamp;
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
