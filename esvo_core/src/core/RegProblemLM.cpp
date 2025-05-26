@@ -56,6 +56,7 @@ void RegProblemLM::setProblem(RefFrame* ref, CurFrame* cur, bool bComputeGrad)
                           (double) ref->vPointXYZPtr_[i]->z);
     Eigen::Vector3d p_cam = R_world_ref.transpose() * (p_tmp - t_world_ref);
     ResItems_[i].initialize(p_cam(0), p_cam(1), p_cam(2));//, var);
+    // std::cout<<p_cam<<std::endl;
   
   // for stochastic sampling
   numBatches_ = std::max(ResItems_.size() / rpConfigPtr_->BATCH_SIZE_, (size_t)1);
@@ -341,7 +342,7 @@ RegProblemLM::getWarpingTransformation(
   Eigen::Vector3d dt = x.block<3,1>(3,0);
   // add rotation
   Eigen::Matrix3d dR = tools::cayley2rot(dc);
-  Eigen::Matrix3d newR = R_.transpose() * dR.transpose();
+  Eigen::Matrix3d newR = dR.transpose() * R_.transpose();
   Eigen::JacobiSVD<Eigen::Matrix3d> svd(newR, Eigen::ComputeFullU | Eigen::ComputeFullV );
   R_cur_ref = svd.matrixU() * svd.matrixV().transpose();
   if( R_cur_ref.determinant() < 0.0 )
@@ -362,7 +363,7 @@ RegProblemLM::addMotionUpdate(const Eigen::Matrix<double, 6, 1>& dx)
   Eigen::Vector3d dt = dx.block<3,1>(3,0);
   // add rotation
   Eigen::Matrix3d dR = tools::cayley2rot(dc);
-  Eigen::Matrix3d newR = dR * R_;
+  Eigen::Matrix3d newR = R_ * dR;
   Eigen::JacobiSVD<Eigen::Matrix3d> svd(newR, Eigen::ComputeFullU | Eigen::ComputeFullV );
   R_ = svd.matrixU() * svd.matrixV().transpose();
   t_ = dt + dR * t_;
@@ -374,10 +375,10 @@ void RegProblemLM::setPose()
   T_world_left_.block<3,1>(0,3) = T_world_ref_.block<3,3>(0,0) * t_
                                   + T_world_ref_.block<3,1>(0,3);
   cur_->tr_ = Transformation(T_world_left_);
-//  LOG(INFO) << "T_world_ref_\n " << T_world_ref_ << "\n ";
-//  LOG(INFO) << "T_world_left_\n " << T_world_left_ << "\n ";
-//  LOG(INFO) << "R_\n " << R_ << "\n ";
-//  LOG(INFO) << "t_\n " << t_.transpose() << "\n ";
+ LOG(INFO) << "T_world_ref_\n " << T_world_ref_ << "\n ";
+ LOG(INFO) << "T_world_left_\n " << T_world_left_ << "\n ";
+ LOG(INFO) << "R_\n " << R_ << "\n ";
+ LOG(INFO) << "t_\n " << t_.transpose() << "\n ";
 }
 
 Eigen::Matrix4d

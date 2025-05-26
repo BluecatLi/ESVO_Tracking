@@ -45,9 +45,12 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
 
   sync_time_ = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
   // pointSet = cv::imread("/home/yufan/Data/experiments/ESVO/EVS/edgemap_box.png", 0);
-  pointSet = cv::imread("/home/yufan/Data/2025/0309/exp1/denoised_sharpened_image.png", 0);
+  // pointSet = cv::imread("/home/yufan/Data/2025/0318/pointset_Cupnoodles.png", 0);
+  // pointSet = cv::imread("/home/yufan/Data/2025/0405/pointset_Cupnoodles.png", 0);
+  pointSet = cv::imread("/home/yufan/Data/2025/0212/ps.png", 0);
   // pointSet = cv::imread("/home/yufan/Data/2024/1018/ev_resized.png", 0);
   prev_TS = cv::Mat::zeros(sensor_size_, CV_8UC1);
+  
 }
 
 TimeSurface::~TimeSurface()
@@ -747,6 +750,7 @@ void TimeSurface::createEventDistanceField(int N, const ros::Time& external_sync
   }
   const dvs_msgs::Event& firstEv = *it;
   // std::cout<<1000*(lastEv.ts-firstEv.ts).toSec()<<std::endl;
+  std::cout<<firstEv.ts<<"   "<<lastEv.ts<<std::endl;
   event_accumulation.convertTo(event_accumulation, CV_8U);
   cv::Mat outputImage;
   int kernelSize = 1; // Kernel size must be odd and greater than 1 (e.g., 3, 5, 7)
@@ -755,6 +759,23 @@ void TimeSurface::createEventDistanceField(int N, const ros::Time& external_sync
   cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
   int ctr = 0;
   assignDistances(outputImage, disI, 10, ctr);
+  // cv::GaussianBlur(outputImage, outputImage, cv::Size(5, 5), 1.4);
+  // // cv::Mat row = disI.col(320).t();
+  // cv::Mat row = disI.row(240);
+
+  //   // Normalize values for display (optional, depending on your data range)
+  //   cv::Mat gradient = cv::Mat::zeros(1, row.cols, CV_64F);
+  //   for (int x = 0; x < row.cols - 1; ++x) {
+  //       gradient.at<double>(0, x) = row.at<double>(0, x + 1) - row.at<double>(0, x);
+  //   }
+  //   gradient.at<double>(0, row.cols - 1) = 0; // Last point has no forward neighbor
+
+  //   // Plot original row
+  //   drawPlot(row, "Row 240 Values", "/home/yufan/Data/2025/0331/val.png", cv::Scalar(0, 0, 255));        // Red line
+
+  //   // Plot gradient
+  //   drawPlot(gradient, "Gradient of Row 240", "/home/yufan/Data/2025/0331/grad.png", cv::Scalar(255, 0, 0));
+  
   // std::cout<<"Point number: "<<ctr<<std::endl;
   cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
@@ -762,10 +783,12 @@ void TimeSurface::createEventDistanceField(int N, const ros::Time& external_sync
   // // //Save images for debug
   // std::stringstream ss;
   // ss << std::setw(10) << std::setfill('0') << external_sync_time.sec << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
-  // std::string filename = "/home/yufan/Data/2025/0318/exp1/DF3/" + ss.str() + ".png";
+  // std::string filename = "/home/yufan/Data/2025/0322/exp1/DF2/" + ss.str() + ".png";
   // cv::imwrite(filename, outputImage);
 
+  // cv::imwrite("/home/yufan/Data/2025/0331/edge.png", outputImage);
 
+  // cv::waitKey(0);
   static cv_bridge::CvImage cv_image, cv_image3;
   cv_image.encoding = "mono8";
   cv_image.image = outputImage.clone();
@@ -780,33 +803,95 @@ void TimeSurface::createEventDistanceField(int N, const ros::Time& external_sync
   }
 }
 
+void TimeSurface::drawPlot(const cv::Mat& data, const std::string& title, const std::string& path, cv::Scalar lineColor = cv::Scalar(0, 0, 255)) {
+  int plot_width = data.cols;
+  int plot_height = 400;
+  int margin = 50;
+
+  // Find max value for scaling
+  double minVal, maxVal;
+  cv::minMaxLoc(data, &minVal, &maxVal);
+  double y_scale = plot_height / (maxVal - minVal + 1e-9);
+
+  // Create canvas
+  cv::Mat plot(plot_height + 2 * margin, plot_width + 2 * margin, CV_8UC3, cv::Scalar(255, 255, 255));
+
+  int base_y = margin + plot_height;
+
+  // Draw axes
+  cv::line(plot, cv::Point(margin, margin), cv::Point(margin, margin + plot_height), cv::Scalar(0, 0, 0), 1); // Y-axis
+  cv::line(plot, cv::Point(margin, base_y), cv::Point(margin + plot_width, base_y), cv::Scalar(0, 0, 0), 1);   // X-axis
+
+  // Y ticks and labels
+  for (int i = 0; i <= 5; ++i) {
+      double y_val = minVal + i * (maxVal - minVal) / 5.0;
+      int y = cv::saturate_cast<int>(base_y - (y_val - minVal) * y_scale);
+      cv::line(plot, cv::Point(margin - 5, y), cv::Point(margin + 5, y), cv::Scalar(0, 0, 0), 1);
+
+      std::ostringstream label;
+      label << std::fixed << std::setprecision(1) << y_val;
+      cv::putText(plot, label.str(), cv::Point(5, y + 5), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0, 0, 0), 1);
+  }
+
+  // X ticks
+  for (int x = 0; x <= plot_width; x += 100) {
+      int xpos = margin + x;
+      cv::line(plot, cv::Point(xpos, base_y - 5), cv::Point(xpos, base_y + 5), cv::Scalar(0, 0, 0), 1);
+
+      std::ostringstream label;
+      label << x;
+      cv::putText(plot, label.str(), cv::Point(xpos - 10, base_y + 20), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0, 0, 0), 1);
+  }
+
+  // Draw line plot
+  for (int x = 1; x < data.cols; ++x) {
+      double val1 = data.at<double>(0, x - 1);
+      double val2 = data.at<double>(0, x);
+
+      int y1 = cv::saturate_cast<int>(base_y - (val1 - minVal) * y_scale);
+      int y2 = cv::saturate_cast<int>(base_y - (val2 - minVal) * y_scale);
+
+      cv::line(plot, cv::Point(margin + x - 1, y1), cv::Point(margin + x, y2), lineColor, 1);
+  }
+
+  // cv::imshow(title, plot);
+
+  cv::imwrite(path, plot);
+}
+
 void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr) 
 {
   CV_Assert(S.size() == I.size() && S.type() == CV_8U && I.type() == CV_64F);
   int radius = k / 2;
   int rows = S.rows;
   int cols = S.cols;
-  int laradius = radius*radius;
+  int laradius = radius;
+  // double laradius = sqrt(radius);
+  
   // Iterate over all pixels in S
   for (int u = 0; u < rows; ++u) {
       for (int v = 0; v < cols; ++v) {
           if (S.at<uchar>(u, v) > 0) {
-              // Iterate over kernel neighborhood
               ctr++;
-              // std::cout<<ctr<<std::endl;
               for (int i = -radius; i <= radius; ++i) {
                   for (int j = -radius; j <= radius; ++j) {
+                      if (i*i + j*j > laradius)  // ✅ Circular region check
+                          continue;
+  
                       int ni = u + i;
                       int nj = v + j;
-                      if(ni < 0 || ni > rows -1 || nj < 0 || nj > cols - 1)
-                        continue;
-                        double dist = double(abs(i*i) + abs(j*j));
-                        I.at<double>(ni, nj) += laradius - dist;
+  
+                      if (ni < 0 || ni >= rows || nj < 0 || nj >= cols)
+                          continue;
+  
+                      double dist = static_cast<double>(sqrt(i*i+j*j));
+                      I.at<double>(ni, nj) += laradius - dist;
                   }
               }
           }
       }
   }
+  
 
 }
 
@@ -1120,7 +1205,7 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
 void TimeSurface::clearEventQueue()
 {
-  static constexpr size_t MAX_EVENT_QUEUE_LENGTH = 50000;
+  static constexpr size_t MAX_EVENT_QUEUE_LENGTH = 20000;
   if (events_.size() > MAX_EVENT_QUEUE_LENGTH)
   {
     size_t remove_events = events_.size() - MAX_EVENT_QUEUE_LENGTH;

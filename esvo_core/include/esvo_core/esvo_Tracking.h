@@ -44,6 +44,9 @@
 
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <termios.h>   // 终端控制
+#include <unistd.h>    // STDIN_FILENO 和 read/write
+#include <fcntl.h>     // fcntl
 
 
 namespace esvo_core
@@ -182,3 +185,4 @@ using Vector2d = Vector2<double>;
 
 
 #endif //ESVO_CORE_TRACKING_H
+

@@ -128,6 +128,7 @@ esvo_Tracking::esvo_Tracking(
   cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
   mMin = 0;
   psFlag = true;
+  // std::cout<<mMin<<" "<<mMax<<std::endl;
   // std::cout<<kf_depth<<std::endl;
   // std::cout<<"The pixels with gradient is "<<gradCounter<<std::endl;
  
@@ -173,12 +174,59 @@ esvo_Tracking::~esvo_Tracking()
   pointSet_pub_.shutdown();
   evs_pub_.shutdown();
 }
+int kbhit()
+{
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+  
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);  // disable canonical mode and echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+  
+    ch = getchar();
+  
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+  
+    if (ch != EOF)
+    {
+        ungetc(ch, stdin);
+        return 1;
+    }
+  
+    return 0;
+}
+
+char getch()
+{
+    struct termios oldt, newt;
+    char ch;
+    tcgetattr( STDIN_FILENO, &oldt );
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO); // turn off echo and canonical mode
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt );
+    ch = getchar();
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
+    return ch;
+}
 
 void esvo_Tracking::TrackingLoop()
 {
   ros::Rate r(tracking_rate_hz_);
   while(ros::ok())
   {
+    if (kbhit())
+    {
+        char c = getch();
+        if (c == 's') {
+            ROS_INFO("Key 's' pressed. Exiting loop.");
+            break;
+        }
+    }
     // Keep Idling
     // std::cout << "amebabababa..."<<std::endl;
     if(refPCMap_.size() < 1 || TS_history_.size() < 1)
@@ -514,7 +562,7 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
                 if (z == -1.0)
                 {
 
-                  ctr ++;
+                  // ctr ++;
                     bool found = false;
                     for (int di = -3; di <= 3 && !found; ++di)
                     {
@@ -538,8 +586,8 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
                     //     kf_depth.at<double>(i, j) = z;
                 }
 
+                // if(z>0)
                 // std::cout<<z<<" ";
-                // if(z<0)
                 //   continue;
                 visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
                 Eigen::Vector3d p_world;
@@ -549,13 +597,14 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
                 // camSysPtr_->cam_left_ptr_->world2Cam(p_world, p_tmp);
                 // std::cout<<p_tmp<<std::endl;
                 pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+                // std::cout<<p_cam<<p_world<<std::endl;
             }
         }
     }
   
   refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
   // std::cout<<refPCMap_.size()<<std::endl;
-  std::cout<<"The point set number is "<<ctr<<std::endl;
+  // std::cout<<"The point set number is "<<ctr<<std::endl;
   std_msgs::Header header;
   header.stamp = cv_ptr_ps->header.stamp;
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
@@ -664,16 +713,20 @@ esvo_Tracking::saveTrajectory(const std::string &resultDir)
   std::list<Eigen::Matrix<double,4,4>,
     Eigen::aligned_allocator<Eigen::Matrix<double,4,4> > >::iterator result_it_end = lPose_.end();
   std::list<std::string>::iterator  ts_it_begin = lTimestamp_.begin();
+  size_t num_to_save = std::min(lPose_.size(), lTimestamp_.size());
 
-  for(;result_it_begin != result_it_end; result_it_begin++, ts_it_begin++)
+  auto result_it = lPose_.begin();
+  auto ts_it = lTimestamp_.begin();
+  
+  for (size_t i = 0; i < num_to_save; ++i, ++result_it, ++ts_it)
   {
-    Eigen::Matrix3d Rwc_result;
-    Eigen::Vector3d twc_result;
-    Rwc_result = (*result_it_begin).block<3,3>(0,0);
-    twc_result = (*result_it_begin).block<3,1>(0,3);
-    Eigen::Quaterniond q(Rwc_result);
-    f << *ts_it_begin << " " << std::setprecision(9) << twc_result.transpose() << " "
-      << q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
+      Eigen::Matrix3d Rwc_result = result_it->block<3,3>(0,0);
+      Eigen::Vector3d twc_result = result_it->block<3,1>(0,3);
+      Eigen::Quaterniond q(Rwc_result);
+  
+      f << *ts_it << " " << std::setprecision(9)
+        << twc_result.transpose() << " "
+        << q.x() << " " << q.y() << " " << q.z() << " " << q.w() << "\n";
   }
   f.close();
   LOG(INFO) << "Saving trajectory to " << resultDir << ". Done !!!!!!.";

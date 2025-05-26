@@ -14,7 +14,7 @@ huber_threshold: 50
 MIN_NUM_EVENTS: 100
 RegProblemType: 1 #( 0 numerical; 1 analytical)
 SAVE_TRAJECTORY: True
-PATH_TO_SAVE_TRAJECTORY: "/home/yufan/Data/2025/0405/"
+PATH_TO_SAVE_TRAJECTORY: "/home/yufan/Data/2025/0429/"
 VISUALIZE_TRAJECTORY: True
-PATH_TO_LOAD_3DModel: "/home/yufan/Data/Model/cupnoodle_v1.ply"
+PATH_TO_LOAD_3DModel: "/home/yufan/Data/Model/cupnoodle_v1.ply" #3_cracker_box  cupnoodle_v1
 PATH_TO_CAMERA_INTRINSICS: "/home/yufan/catkin_ws/src/ESVO_Tracking/esvo_core/cfg/tracking/omni.yaml" 
