@@ -110,7 +110,7 @@ target_link_libraries(esvo_Mapping ${PROJECT_NAME}_LIB
 cs_add_executable(esvo_Tracking src/esvo_TrackingNode.cpp
     src/esvo_Tracking.cpp include/esvo_core/esvo_Tracking.h)
 target_link_libraries(esvo_Tracking ${PROJECT_NAME}_LIB
-    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${ORFCV_LIBRARIES} ${VISP_LIBRARIES} OgreMain yaml-cpp)
+    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${ORFCV_LIBRARIES} ${VISP_LIBRARIES} OgreMain yaml-cpp GL)
 
 # Node esvo_MVS (newly added in branch "mvs")
 cs_add_executable(esvo_MVStereo

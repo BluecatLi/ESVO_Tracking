@@ -82,9 +82,12 @@ esvo_Tracking::esvo_Tracking(
     // std::cout<<"Pose = "<<cam_omni.pose[0]<<" "<<cam_omni.pose[6]<<std::endl;
   cMo = toHomogeneousMatrix(cam_omni.pose).inverse();
 
+
+  // Apply the transformation
+  // cMo = cMo * T.inverse();  // or cMo = cMo * T depending on frame convention
+
     // vpPoseVector pv(cMo);
     // std::cout << "cMo = " << pv.t() << std::endl;
-
   if (moteur->continueRendering())
   {
       ROS_INFO("tentative rendu");
@@ -95,7 +98,6 @@ esvo_Tracking::esvo_Tracking(
       ROS_INFO("probleme rendu");
       exit(12);
   }
-  
   kf_omni.kfresize(cam_omni.width, cam_omni.height);
   moteur->getInternalImage(kf_omni.I);
   moteur->getInternalImageZ(kf_omni.Idepth);
@@ -125,11 +127,11 @@ esvo_Tracking::esvo_Tracking(
   }
   cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
   cv::Canny(kf_I, edges, 150, 300);
- 
-    cv::imwrite("/home/yufan/Data/2025/0606/edges1.png", edges);
+
+    // cv::imwrite("/home/yufan/Data/2025/0414/edges.png", edges);
   cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
-  mMin = 0; 
-  psFlag = true; 
+  mMin = 0;
+  psFlag = true;
   // std::cout<<mMin<<" "<<mMax<<std::endl;
   // std::cout<<kf_depth<<std::endl;
   // std::cout<<"The pixels with gradient is "<<gradCounter<<std::endl;
@@ -140,59 +142,15 @@ esvo_Tracking::esvo_Tracking(
   // static cv_bridge::CvImage cv_image;
   // cv_image.encoding = "mono8";
   // cv_image.image = pointSet.clone();
-  
+
   // // ros::Time sync_time_ = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
   // cv_image.header.stamp = ros::Time(1713838578, 314152240);
-  // cv_image.header.stamp = ros::Time::now();  
+  // cv_image.header.stamp = ros::Time::now();
 
   // pointSet_pub_.publish(cv_image.toImageMsg());
-auto start = std::chrono::high_resolution_clock::now(); 
 
-for (int i = 0; i < 100; ++i)
-{
-    moteur->display(&cMo);  // or whatever your render call is
-}
 
-auto end = std::chrono::high_resolution_clock::now();
-double duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-std::cout << "Rendering 100 frames took " << duration_ms << " ms" << std::endl;
-std::cout << "Average per frame: " << (duration_ms / 100.0) << " ms" << std::endl;
-
-  double dx = 0.01; // 1 cm 
-  double angle_deg = 1.0;
-  double angle_rad = angle_deg * M_PI / 180.0;
-
-  // Define rotation around Z
-  vpRotationMatrix Rz;
-  Rz.buildFrom(0, 0, angle_rad); // rotate around Z axis
-
-  // Set translation and rotation
-  smallShift.buildFrom(vpTranslationVector(dx, 0.0, 0.0), Rz);
-
-  // Apply to cMo
-  cMo = cMo * smallShift.inverse();
-   if (moteur->continueRendering())
-  {
-      ROS_INFO("tentative rendu");
-      moteur->display(&cMo);
-  }
-  else
-  {
-      ROS_INFO("probleme rendu");
-      exit(12);
-  }
-  
-  kf_omni.kfresize(cam_omni.width, cam_omni.height);
-  moteur->getInternalImage(kf_omni.I);
-  moteur->getInternalImageZ(kf_omni.Idepth);
-
-  // std::cout<<"The width you want is "<<camSysPtr_->cam_left_ptr_->width_<<std::endl;
-  vpImageConvert::convert(kf_omni.I, kf_I, true);
-    cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
-  cv::Canny(kf_I, edges, 150, 300);
-
-    cv::imwrite("/home/yufan/Data/2025/0606/edges2.png", edges);
+ 
   /*** For Visualization and Test ***/
   reprojMap_pub_left_  = it_.advertise("Reproj_Map_Left", 1);
   rpSolver_.setRegPublisher(&reprojMap_pub_left_);
@@ -300,28 +258,12 @@ void esvo_Tracking::TrackingLoop()
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       if(ref_.t_.toSec() < refPCMap_.rbegin()->first.toSec())// new reference map arrived
-      // if(1)
-      
+      if(1)
       {
         refDataTransferring();
         // std::cout<<"Times are "<< ref_.t_.toSec() <<" "<< refPCMap_.rbegin()->first.toSec()<<std::endl;
-        renderFlag = true;
       }
-      if(renderFlag)
-      {
-        auto t_start = std::chrono::steady_clock::now();
-        renderCtr ++;
-        // std::cout<<"Render counter = "<<renderCtr<<std::endl;
-        if(renderCtr == 30)
-        {
-          auto t_start = std::chrono::steady_clock::now();
-          rerender();
-          renderCtr = 0;
-          auto t_end = std::chrono::steady_clock::now();
-          double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-          std::cout << "[Timer] Code block took " << elapsed_ms << " ms.\n";
-        } 
-    } 
+
       // std::cout<<cur_.t_.toSec() - TS_history_.rbegin()->first.toSec()<<std::endl;
       // std::cout<<TS_history_.rbegin()->first.toSec()<<std::endl;
       if(cur_.t_.toSec() < TS_history_.rbegin()->first.toSec())// new observation arrived
@@ -330,7 +272,7 @@ void esvo_Tracking::TrackingLoop()
         if(ref_.t_.toSec() > TS_history_.rbegin()->first.toSec())
         {
           LOG(INFO) << "The time_surface observation should be obtained after the reference frame";
-          exit(-1); 
+          exit(-1);
         }
         if(!curDataTransferring())
         {
@@ -428,41 +370,138 @@ void esvo_Tracking::TrackingLoop()
   }
 }
 
-//Transfer the depth map data to ref_ frame. The data source is refPCMAP_. tr is set to identity matrix
+//re-render the pointset and the depth map
 bool
 esvo_Tracking::refDataTransferring()
 {
-
-  // load reference info
-  ref_.t_ = refPCMap_.rbegin()->first;
-
-  nh_.getParam("/ESVO_SYSTEM_STATUS", ESVO_System_Status_);
-//  LOG(INFO) << "SYSTEM STATUS(T"
-  if(ESVO_System_Status_ == "INITIALIZATION" && ets_ == IDLE)
-    ref_.tr_.setIdentity();
-  if(ESVO_System_Status_ == "WORKING" || (ESVO_System_Status_ == "INITIALIZATION" && ets_ == WORKING))
+  std::cout<<"Called once"<<std::endl;
+  renderCtr ++;
+  if(renderCtr > 30)
   {
-    if(!getPoseAt(ref_.t_, ref_.tr_, dvs_frame_id_))
-    {
-      LOG(INFO) << "ESVO_System_Status_: " << ESVO_System_Status_ << ", ref_.t_: " << ref_.t_.toNSec();
-      LOG(INFO) << "Logic error ! There must be a pose for the given timestamp, because mapping has been finished.";
-      exit(-1);
-      return false;
-    }
+    Eigen::Matrix4d eigenMat = cur_.tr_.getTransformationMatrix();
+
+    // Convert Eigen::Matrix4d to vpHomogeneousMatrix
+    vpHomogeneousMatrix T;
+    for (unsigned int i = 0; i < 4; ++i)
+      for (unsigned int j = 0; j < 4; ++j)
+        T[i][j] = eigenMat(i, j);
+    std::cout<<T<<std::endl;
+    // Apply transformation
+    // cMo = cMo * T.inverse();
+      // cMo = toHomogeneousMatrix(cam_omni.pose).inverse();
+    std::cout << "[DEBUG] moteur->continueRendering() = "
+          << moteur->continueRendering() << std::endl;
+std::cout << "[DEBUG] Before display" << std::endl;
+moteur->display(&cMo);
+std::cout << "[DEBUG] After display" << std::endl;
+
+  kf_omni.kfresize(cam_omni.width, cam_omni.height);
+moteur->getInternalImage(kf_omni.I);
+std::cout << "[DEBUG] After getInternalImage" << std::endl;
+
+moteur->getInternalImageZ(kf_omni.Idepth);
+std::cout << "[DEBUG] After getInternalImageZ" << std::endl;
+    // moteur->getInternalImage(kf_omni.I);
+    // moteur->getInternalImageZ(kf_omni.Idepth);
+
+    // // std::cout<<"The width you want is "<<camSysPtr_->cam_left_ptr_->width_<<std::endl;
+    // vpImageConvert::convert(kf_omni.I, kf_I, true);
+    // // vpImageConvert::convert(kf_omni.Idepth, kf_depth);
+    // // image_gradient(kf_I, kf_grad);
+    // // int gradCounter = 0;
+    // for (int i = 0; i < cam_omni.height; i++)
+    // {
+    //     for (int j = 0; j < cam_omni.width; j++)
+    //     {
+    //         // if ((kf.gradient.at<Vector2d>(i, j)[0] != 0 || kf.gradient.at<Vector2d>(i, j)[1] != 0) && (kf.depth.at<double>(i, j) > 0))
+    //         // if (kf_grad.at<Vector2d>(i, j)[0] != 0 || kf_grad.at<Vector2d>(i, j)[1] != 0)
+    //         // {
+    //         //     gradCounter++;
+    //         //     // std::cout << "i, j = " << i << " " << j << std::endl;
+    //         //     // cv::Vec3 test = kf.gradient.at<cv::Vec3>(i, j);
+    //         //     // std::cout << "Grad_x = " << kf.gradient.at<Vector2d>(i, j)[0] << "  Grad_y = " << kf.gradient.at<Vector2d>(i, j)[1] << std::endl;
+    //         // }
+    //         kf_depth.at<double>(i, j) = double(kf_omni.Idepth[i][j]);
+    //     }
+    // }
+    // cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
+    // cv::Canny(kf_I, edges, 150, 300);
+
+    // cv::Mat img;
+    // img = edges;
+
+    // std::cout<<img.type()<<std::endl;
+    // cv::cvtColor(img, img, CV_GRAY2BGR);
+    // // std::cout<<img<<std::endl;
+    // int ctr = 0;
+    // for (int i = 0; i < img.rows; i++)
+    //   {
+    //       for (int j = 0; j < img.cols; j++)
+    //       {
+    //           // if ((abs(kf.gradient.at<Vector2d>(i, j)[0] * kf.gradient.at<Vector2d>(i, j)[1]) > 10) && (kf.depth.at<double>(i, j) > 0))
+    //           if (edges.at<uchar>(i,j) == 255 )
+    //           {
+    //               double z = kf_depth.at<double>(i,j);
+
+    //               if (z == -1.0)
+    //               {
+
+    //                 // ctr ++;
+    //                   bool found = false;
+    //                   for (int di = -3; di <= 3 && !found; ++di)
+    //                   {
+    //                       for (int dj = -3; dj <= 3 && !found; ++dj)
+    //                       {
+    //                           int ni = i + di;
+    //                           int nj = j + dj;
+    //                           if (ni >= 0 && ni < kf_depth.rows && nj >= 0 && nj < kf_depth.cols)
+    //                           {
+    //                               double neighbor_z = kf_depth.at<double>(ni, nj);
+    //                               if (neighbor_z > 0)
+    //                               {
+    //                                   z = neighbor_z;
+    //                                   found = true;
+    //                               }
+    //                           }
+    //                       }
+    //                   }
+    //                   // If found, assign the new depth value
+    //                   // if (found)
+    //                   //     kf_depth.at<double>(i, j) = z;
+    //               }
+
+    //               // if(z>0)
+    //               // std::cout<<z<<" ";
+    //               //   continue;
+    //               visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
+    //               Eigen::Vector3d p_world;
+    //               Eigen::Vector2d p_cam(j, i);
+    //               camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
+    //               // Eigen::Vector2d p_tmp;
+    //               // camSysPtr_->cam_left_ptr_->world2Cam(p_world, p_tmp);
+    //               // std::cout<<p_tmp<<std::endl;
+    //               pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+    //               // std::cout<<p_cam<<p_world<<std::endl;
+    //           }
+    //       }
+    //   }
+    
+    // refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
+    // // std::cout<<refPCMap_.size()<<std::endl;
+    // // std::cout<<"The point set number is "<<ctr<<std::endl;
+    // std_msgs::Header header;
+    // header.stamp = cv_ptr_ps->header.stamp;
+    // sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
+    // // static cv_bridge::CvImage cv_image;
+    // // cv_image.encoding = "mono8";
+    // // cv_image.image = kf_I.clone();
+    // // cv_image.header.stamp = cv_ptr_ps->header.stamp;
+    // // pointSet_pub_.publish(cv_image.toImageMsg());
+    // pointSet_pub_.publish(msg);
+
+    renderCtr = 0;
   }
 
-  size_t numPoint = refPCMap_.rbegin()->second->size();
-  ref_.vPointXYZPtr_.clear();
-  ref_.vPointXYZPtr_.reserve(numPoint);
-  auto PointXYZ_begin_it = refPCMap_.rbegin()->second->begin();
-  auto PointXYZ_end_it   = refPCMap_.rbegin()->second->end();
-  while(PointXYZ_begin_it != PointXYZ_end_it)
-  {
-    ref_.vPointXYZPtr_.push_back(PointXYZ_begin_it.base());// Copy the pointer of the pointXYZ
-    PointXYZ_begin_it++;
-  }
-  // std::cout<<ref_.tr_<<std::endl;
-  return true;
 }
 
 bool
@@ -825,104 +864,4 @@ vpHomogeneousMatrix esvo_Tracking::toHomogeneousMatrix(double *s)
 
     return mat;
 }
-
-void esvo_Tracking::rerender()
-{
-  Eigen::Matrix4d eigenMat = cur_.tr_.getTransformationMatrix();
-
-  // Convert Eigen::Matrix4d to vpHomogeneousMatrix
-  vpHomogeneousMatrix T;
-  for (unsigned int i = 0; i < 4; ++i)
-    for (unsigned int j = 0; j < 4; ++j)
-      T[i][j] = eigenMat(i, j);
-
-  cMo = cMo * smallShift.inverse();
-  std::cout << cMo << std::endl;
-
-if (moteur->continueRendering())
-{
-    moteur->updateCameraParameters(cMo);  // <- this must run every time
-    moteur->display(&cMo);
-}
-  else
-  {
-    ROS_INFO("probleme rendu");
-    LOG(ERROR) << "Fatal logic error. Ref pose not available.";
-  }
-
-  kf_omni.kfresize(cam_omni.width, cam_omni.height);
-  moteur->getInternalImage(kf_omni.I);
-  moteur->getInternalImageZ(kf_omni.Idepth);
-  vpImageConvert::convert(kf_omni.I, kf_I, true);
-
-  std::cout << "Pixel(240,320) intensity: " << int(kf_omni.I[240][320]) << " " << int(kf_omni.I[240][322]) << std::endl;
-
-  for (int i = 0; i < cam_omni.height; i++)
-  {
-    for (int j = 0; j < cam_omni.width; j++)
-    {
-      kf_depth.at<double>(i, j) = double(kf_omni.Idepth[i][j]);
-    }
-  }
-
-  cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
-  cv::Canny(kf_I, edges, 150, 300); 
-  cv::Mat img = edges.clone();
-
-  pc_->clear();
-  pc_->reserve(5000);
-  cv::cvtColor(img, img, CV_GRAY2BGR);
-
-  std::ostringstream filename;
-  filename << "/home/yufan/Data/2025/0606/edge_" << std::setfill('0') << std::setw(5) << edge_image_counter << ".png";
-  edge_image_counter++;
-  cv::imwrite(filename.str(), kf_I );
- 
-  int ctr = 0; 
-  for (int i = 0; i < img.rows; i++)
-  {
-    for (int j = 0; j < img.cols; j++)
-    { 
-      if (edges.at<uchar>(i, j) == 255)
-      {
-        double z = kf_depth.at<double>(i, j);
-        if (z == -1.0)
-        { 
-          for (int di = -3; di <= 3 && z == -1.0; ++di)
-          { 
-            for (int dj = -3; dj <= 3 && z == -1.0; ++dj)
-            {
-              int ni = i + di, nj = j + dj;
-              if (ni >= 0 && ni < kf_depth.rows && nj >= 0 && nj < kf_depth.cols)
-              { 
-                double neighbor_z = kf_depth.at<double>(ni, nj);
-                if (neighbor_z > 0)
-                {
-                  z = neighbor_z;
-                }
-              }
-            }
-          }
-        }
-
-        visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax, Eigen::Vector2d(j, i), img);
-        Eigen::Vector3d p_world;
-        Eigen::Vector2d p_cam(j, i);
-        camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
-        pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
-        ctr++;
-      }
-    }
-  }
-
-  refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
-  std::cout << refPCMap_.size() << std::endl;
-  std::cout << "The point set number is " << ctr << std::endl;
-
-  std_msgs::Header header;
-  header.stamp = cv_ptr_ps->header.stamp;
-  sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
-  pointSet_pub_.publish(msg);
-}
-
 }// namespace esvo_core

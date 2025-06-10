@@ -375,10 +375,10 @@ void RegProblemLM::setPose()
   T_world_left_.block<3,1>(0,3) = T_world_ref_.block<3,3>(0,0) * t_
                                   + T_world_ref_.block<3,1>(0,3);
   cur_->tr_ = Transformation(T_world_left_);
- LOG(INFO) << "T_world_ref_\n " << T_world_ref_ << "\n ";
- LOG(INFO) << "T_world_left_\n " << T_world_left_ << "\n ";
- LOG(INFO) << "R_\n " << R_ << "\n ";
- LOG(INFO) << "t_\n " << t_.transpose() << "\n ";
+//  LOG(INFO) << "T_world_ref_\n " << T_world_ref_ << "\n ";
+//  LOG(INFO) << "T_world_left_\n " << T_world_left_ << "\n ";
+//  LOG(INFO) << "R_\n " << R_ << "\n ";
+//  LOG(INFO) << "t_\n " << t_.transpose() << "\n ";
 }
 
 Eigen::Matrix4d

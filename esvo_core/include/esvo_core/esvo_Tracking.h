@@ -47,6 +47,7 @@
 #include <termios.h>   // 终端控制
 #include <unistd.h>    // STDIN_FILENO 和 read/write
 #include <fcntl.h>     // fcntl
+#include <GL/gl.h>
 
 
 namespace esvo_core
@@ -158,7 +159,7 @@ class esvo_Tracking
   RegProblemSolverLM rpSolver_;
 
   //Yufan added for omni camera model
-  gcOgre *moteur;
+  gcOgre *moteur, *moteur2;
   CameraOmni cam_omni;
   COmni *cam;
   vpHomogeneousMatrix toHomogeneousMatrix(double *s);
@@ -175,6 +176,15 @@ class esvo_Tracking
   double mMin, mMax;
   PointCloud::Ptr pc_;
   bool psFlag;
+
+  int renderCtr=0;
+  bool renderFlag = false;
+
+  cv_bridge::CvImagePtr cv_ptr_ps;
+  int edge_image_counter = 0; 
+
+  vpHomogeneousMatrix smallShift;
+  void rerender();
 };
 template <class Scalar, int M, int Options = 0>
 using Vector = Eigen::Matrix<Scalar, M, 1, Options>;
