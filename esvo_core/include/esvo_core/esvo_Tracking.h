@@ -184,6 +184,8 @@ class esvo_Tracking
   int edge_image_counter = 0; 
 
   vpHomogeneousMatrix smallShift;
+
+    vpHomogeneousMatrix delta_i;
   void rerender();
 };
 template <class Scalar, int M, int Options = 0>

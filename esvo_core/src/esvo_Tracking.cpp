@@ -75,30 +75,30 @@ esvo_Tracking::esvo_Tracking(
   cam = new COmni(cam_omni.px, cam_omni.py, cam_omni.u0, cam_omni.v0, cam_omni.xi, cam_omni.k[0], cam_omni.k[1], cam_omni.k[2], cam_omni.k[3]);
   cam->setActiveDistorsionParameters(true, false, false, false, false);
   // std::cout<<cam_omni.px<<" "<<cam_omni.py<<" "<<cam_omni.u0<<" "<<cam_omni.v0<<" "<<cam_omni.xi<<std::endl;
-  moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Dependency/ogre-1.12.2/OgreConfigs/");
-  moteur->init(); 
-  moteur->loadPointCloud("objecttotrack", evsModelPath_);
-  moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
+  // moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Dependency/ogre-1.12.2/OgreConfigs/");
+  // moteur->init(); 
+  // moteur->loadPointCloud("objecttotrack", evsModelPath_);
+  // moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
     // std::cout<<"Pose = "<<cam_omni.pose[0]<<" "<<cam_omni.pose[6]<<std::endl;
   cMo = toHomogeneousMatrix(cam_omni.pose).inverse();
 
     // vpPoseVector pv(cMo);
     // std::cout << "cMo = " << pv.t() << std::endl;
 
-  if (moteur->continueRendering())
-  {
-      ROS_INFO("tentative rendu");
-      moteur->display(&cMo);
-  }
-  else
-  {
-      ROS_INFO("probleme rendu");
-      exit(12);
-  }
+  // if (moteur->continueRendering())
+  // {
+  //     ROS_INFO("tentative rendu");
+  //     moteur->display(&cMo);
+  // }
+  // else
+  // {
+  //     ROS_INFO("probleme rendu");
+  //     exit(12);
+  // }
   
   kf_omni.kfresize(cam_omni.width, cam_omni.height);
-  moteur->getInternalImage(kf_omni.I);
-  moteur->getInternalImageZ(kf_omni.Idepth);
+  // moteur->getInternalImage(kf_omni.I);
+  // moteur->getInternalImageZ(kf_omni.Idepth);
 
   // std::cout<<"The width you want is "<<camSysPtr_->cam_left_ptr_->width_<<std::endl;
   vpImageConvert::convert(kf_omni.I, kf_I, true);
@@ -146,53 +146,76 @@ esvo_Tracking::esvo_Tracking(
   // cv_image.header.stamp = ros::Time::now();  
 
   // pointSet_pub_.publish(cv_image.toImageMsg());
-auto start = std::chrono::high_resolution_clock::now(); 
 
-for (int i = 0; i < 100; ++i)
-{
-    moteur->display(&cMo);  // or whatever your render call is
-}
+// Define small pose shift: 1cm along X, 1° around Z
+vpHomogeneousMatrix cMo_initial = cMo;  // Save original pose
+double dx = 0.01; // 1 cm shift per frame along X
+double dy = 0.0;
+double dz = 0.0;
 
-auto end = std::chrono::high_resolution_clock::now();
-double duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+double angle_x = 0.0;
+double angle_y = 0.0;
+double angle_z = 0.0;
 
-std::cout << "Rendering 100 frames took " << duration_ms << " ms" << std::endl;
-std::cout << "Average per frame: " << (duration_ms / 100.0) << " ms" << std::endl;
+vpRotationMatrix R;
+R.buildFrom(angle_x, angle_y, angle_z); // Identity rotation
 
-  double dx = 0.01; // 1 cm 
-  double angle_deg = 1.0;
-  double angle_rad = angle_deg * M_PI / 180.0;
+vpTranslationVector T(dx, dy, dz); // X shift only
 
-  // Define rotation around Z
-  vpRotationMatrix Rz;
-  Rz.buildFrom(0, 0, angle_rad); // rotate around Z axis
+//delta_i;
+delta_i.buildFrom(T, R);
+// for (int i = 0; i < 100; ++i) rerender works in header
+// {
+//   rerender();
+// }
 
-  // Set translation and rotation
-  smallShift.buildFrom(vpTranslationVector(dx, 0.0, 0.0), Rz);
+// Loop over 100 unique perturbations
+// for (int i = 0; i < 100; ++i)
+// {
+//     // Create unique small translation and rotation per image
+//     double dx = 0.01 * std::sin(i * 0.1);  // e.g., ~[-1cm, +1cm]
+//     double dy = 0.01 * std::cos(i * 0.1);
+//     double dz = 0.005 * std::sin(i * 0.05);
 
-  // Apply to cMo
-  cMo = cMo * smallShift.inverse();
-   if (moteur->continueRendering())
-  {
-      ROS_INFO("tentative rendu");
-      moteur->display(&cMo);
-  }
-  else
-  {
-      ROS_INFO("probleme rendu");
-      exit(12);
-  }
-  
-  kf_omni.kfresize(cam_omni.width, cam_omni.height);
-  moteur->getInternalImage(kf_omni.I);
-  moteur->getInternalImageZ(kf_omni.Idepth);
+//     double angle_x = 0.5 * M_PI / 180.0 * std::sin(i * 0.07); // ≤ 0.5 deg
+//     double angle_y = 0.5 * M_PI / 180.0 * std::cos(i * 0.04);
+//     double angle_z = 0.5 * M_PI / 180.0 * std::sin(i * 0.09);
 
-  // std::cout<<"The width you want is "<<camSysPtr_->cam_left_ptr_->width_<<std::endl;
-  vpImageConvert::convert(kf_omni.I, kf_I, true);
-    cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
-  cv::Canny(kf_I, edges, 150, 300);
+//     // Build rotation and translation
+//     vpRotationMatrix R;
+//     R.buildFrom(angle_x, angle_y, angle_z);
+//     vpTranslationVector T(dx, dy, dz);
 
-    cv::imwrite("/home/yufan/Data/2025/0606/edges2.png", edges);
+//     // delta_i.buildFrom(T, R);
+
+//     // Compute pose: perturbation of the initial pose
+//     vpHomogeneousMatrix cMo_i = cMo_initial * delta_i;
+
+//     // Render
+//     if (moteur->continueRendering())
+//         moteur->display(&cMo_i);
+//     else
+//     {
+//         ROS_INFO("probleme rendu");
+//         exit(12);
+//     }
+
+//     // Get image and save
+//     kf_omni.kfresize(cam_omni.width, cam_omni.height);
+//     moteur->getInternalImage(kf_omni.I);
+//     moteur->getInternalImageZ(kf_omni.Idepth);
+//     vpImageConvert::convert(kf_omni.I, kf_I, true);
+
+//     // Save to disk
+//     std::ostringstream oss;
+//     oss << "/home/yufan/Data/2025/0606/edges_" << std::setfill('0') << std::setw(3) << i << ".png";
+//     cv::imwrite(oss.str(), kf_I);
+
+//     std::cout << "Saved: " << oss.str() << std::endl;
+//   }
+
+
+
   /*** For Visualization and Test ***/
   reprojMap_pub_left_  = it_.advertise("Reproj_Map_Left", 1);
   rpSolver_.setRegPublisher(&reprojMap_pub_left_);
@@ -262,6 +285,13 @@ char getch()
 
 void esvo_Tracking::TrackingLoop()
 {
+    moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Dependency/ogre-1.12.2/OgreConfigs/");
+  moteur->init(); //need to initialize in the same thread
+  moteur->loadPointCloud("objecttotrack", evsModelPath_);
+  moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
+  for (int i = 0; i < 100; ++i) {//is rerender works here? --no
+  rerender();
+}
   ros::Rate r(tracking_rate_hz_);
   while(ros::ok())
   {
@@ -828,19 +858,23 @@ vpHomogeneousMatrix esvo_Tracking::toHomogeneousMatrix(double *s)
 
 void esvo_Tracking::rerender()
 {
-  Eigen::Matrix4d eigenMat = cur_.tr_.getTransformationMatrix();
+  // Eigen::Matrix4d eigenMat = cur_.tr_.getTransformationMatrix();
 
-  // Convert Eigen::Matrix4d to vpHomogeneousMatrix
-  vpHomogeneousMatrix T;
-  for (unsigned int i = 0; i < 4; ++i)
-    for (unsigned int j = 0; j < 4; ++j)
-      T[i][j] = eigenMat(i, j);
+  // // Convert Eigen::Matrix4d to vpHomogeneousMatrix
+  // vpHomogeneousMatrix T;
+  // for (unsigned int i = 0; i < 4; ++i)
+  //   for (unsigned int j = 0; j < 4; ++j)
+  //     T[i][j] = eigenMat(i, j);
 
-  cMo = cMo * smallShift.inverse();
-  std::cout << cMo << std::endl;
+  // cMo = cMo * smallShift.inverse();
+
+  cMo = cMo * delta_i;
+
 
 if (moteur->continueRendering())
 {
+    std::cout << delta_i << std::endl;
+  std::cout << cMo << std::endl;
     moteur->updateCameraParameters(cMo);  // <- this must run every time
     moteur->display(&cMo);
 }
@@ -851,10 +885,13 @@ if (moteur->continueRendering())
   }
 
   kf_omni.kfresize(cam_omni.width, cam_omni.height);
-  moteur->getInternalImage(kf_omni.I);
+  moteur->getInternalImage(kf_omni.I); 
   moteur->getInternalImageZ(kf_omni.Idepth);
   vpImageConvert::convert(kf_omni.I, kf_I, true);
-
+  std::ostringstream filename;
+  filename << "/home/yufan/Data/2025/0606/edge_" << std::setfill('0') << std::setw(5) << edge_image_counter << ".png";
+  edge_image_counter++;
+  cv::imwrite(filename.str(), kf_I );
   std::cout << "Pixel(240,320) intensity: " << int(kf_omni.I[240][320]) << " " << int(kf_omni.I[240][322]) << std::endl;
 
   for (int i = 0; i < cam_omni.height; i++)
@@ -869,60 +906,60 @@ if (moteur->continueRendering())
   cv::Canny(kf_I, edges, 150, 300); 
   cv::Mat img = edges.clone();
 
-  pc_->clear();
-  pc_->reserve(5000);
-  cv::cvtColor(img, img, CV_GRAY2BGR);
+  // pc_->clear();
+  // pc_->reserve(5000);
+  // cv::cvtColor(img, img, CV_GRAY2BGR);
 
-  std::ostringstream filename;
-  filename << "/home/yufan/Data/2025/0606/edge_" << std::setfill('0') << std::setw(5) << edge_image_counter << ".png";
-  edge_image_counter++;
-  cv::imwrite(filename.str(), kf_I );
+  // // std::ostringstream filename;
+  // // filename << "/home/yufan/Data/2025/0606/edge_" << std::setfill('0') << std::setw(5) << edge_image_counter << ".png";
+  // // edge_image_counter++;
+  // // cv::imwrite(filename.str(), kf_I );
  
-  int ctr = 0; 
-  for (int i = 0; i < img.rows; i++)
-  {
-    for (int j = 0; j < img.cols; j++)
-    { 
-      if (edges.at<uchar>(i, j) == 255)
-      {
-        double z = kf_depth.at<double>(i, j);
-        if (z == -1.0)
-        { 
-          for (int di = -3; di <= 3 && z == -1.0; ++di)
-          { 
-            for (int dj = -3; dj <= 3 && z == -1.0; ++dj)
-            {
-              int ni = i + di, nj = j + dj;
-              if (ni >= 0 && ni < kf_depth.rows && nj >= 0 && nj < kf_depth.cols)
-              { 
-                double neighbor_z = kf_depth.at<double>(ni, nj);
-                if (neighbor_z > 0)
-                {
-                  z = neighbor_z;
-                }
-              }
-            }
-          }
-        }
+  // int ctr = 0; 
+  // for (int i = 0; i < img.rows; i++)
+  // {
+  //   for (int j = 0; j < img.cols; j++)
+  //   { 
+  //     if (edges.at<uchar>(i, j) == 255)
+  //     {
+  //       double z = kf_depth.at<double>(i, j);
+  //       if (z == -1.0)
+  //       { 
+  //         for (int di = -3; di <= 3 && z == -1.0; ++di)
+  //         { 
+  //           for (int dj = -3; dj <= 3 && z == -1.0; ++dj)
+  //           {
+  //             int ni = i + di, nj = j + dj;
+  //             if (ni >= 0 && ni < kf_depth.rows && nj >= 0 && nj < kf_depth.cols)
+  //             { 
+  //               double neighbor_z = kf_depth.at<double>(ni, nj);
+  //               if (neighbor_z > 0)
+  //               {
+  //                 z = neighbor_z;
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
 
-        visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax, Eigen::Vector2d(j, i), img);
-        Eigen::Vector3d p_world;
-        Eigen::Vector2d p_cam(j, i);
-        camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
-        pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
-        ctr++;
-      }
-    }
-  }
+  //       visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax, Eigen::Vector2d(j, i), img);
+  //       Eigen::Vector3d p_world;
+  //       Eigen::Vector2d p_cam(j, i);
+  //       camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
+  //       pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+  //       ctr++;
+  //     }
+  //   }
+  // }
 
-  refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
-  std::cout << refPCMap_.size() << std::endl;
-  std::cout << "The point set number is " << ctr << std::endl;
+  // refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
+  // std::cout << refPCMap_.size() << std::endl;
+  // std::cout << "The point set number is " << ctr << std::endl;
 
-  std_msgs::Header header;
-  header.stamp = cv_ptr_ps->header.stamp;
-  sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
-  pointSet_pub_.publish(msg);
+  // std_msgs::Header header;
+  // header.stamp = cv_ptr_ps->header.stamp;
+  // sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
+  // pointSet_pub_.publish(msg);
 }
 
 }// namespace esvo_core
