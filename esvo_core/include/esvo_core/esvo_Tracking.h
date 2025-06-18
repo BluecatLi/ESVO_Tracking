@@ -77,6 +77,7 @@ class esvo_Tracking
     const sensor_msgs::ImageConstPtr& time_surface_left,
     const sensor_msgs::ImageConstPtr& time_surface_right);
   void pointsetCallback(const sensor_msgs::ImageConstPtr& point_set);
+  void refreshDepth(cv::Mat& edge, cv::Mat& depth);
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
 
   // results

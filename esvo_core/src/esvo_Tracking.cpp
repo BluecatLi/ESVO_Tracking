@@ -79,11 +79,11 @@ esvo_Tracking::esvo_Tracking(
   // moteur->init(); 
   // moteur->loadPointCloud("objecttotrack", evsModelPath_);
   // moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
-    // std::cout<<"Pose = "<<cam_omni.pose[0]<<" "<<cam_omni.pose[6]<<std::endl;
+  //   // std::cout<<"Pose = "<<cam_omni.pose[0]<<" "<<cam_omni.pose[6]<<std::endl;
   cMo = toHomogeneousMatrix(cam_omni.pose).inverse();
 
-    // vpPoseVector pv(cMo);
-    // std::cout << "cMo = " << pv.t() << std::endl;
+  //   // vpPoseVector pv(cMo);
+  //   // std::cout << "cMo = " << pv.t() << std::endl;
 
   // if (moteur->continueRendering())
   // {
@@ -96,40 +96,41 @@ esvo_Tracking::esvo_Tracking(
   //     exit(12);
   // }
   
-  kf_omni.kfresize(cam_omni.width, cam_omni.height);
+  // kf_omni.kfresize(cam_omni.width, cam_omni.height);
   // moteur->getInternalImage(kf_omni.I);
   // moteur->getInternalImageZ(kf_omni.Idepth);
 
-  // std::cout<<"The width you want is "<<camSysPtr_->cam_left_ptr_->width_<<std::endl;
-  vpImageConvert::convert(kf_omni.I, kf_I, true);
-  // vpImageConvert::convert(kf_omni.Idepth, kf_depth);
-  // image_gradient(kf_I, kf_grad);
-  // int gradCounter = 0;
-  kf_depth = cv::Mat::zeros(cam_omni.height, cam_omni.width, CV_64FC1);
-  pc_->clear();
-  pc_->reserve(5000);
-  for (int i = 0; i < cam_omni.height; i++)
-  {
-      for (int j = 0; j < cam_omni.width; j++)
-      {
-          // if ((kf.gradient.at<Vector2d>(i, j)[0] != 0 || kf.gradient.at<Vector2d>(i, j)[1] != 0) && (kf.depth.at<double>(i, j) > 0))
-          // if (kf_grad.at<Vector2d>(i, j)[0] != 0 || kf_grad.at<Vector2d>(i, j)[1] != 0)
-          // {
-          //     gradCounter++;
-          //     // std::cout << "i, j = " << i << " " << j << std::endl;
-          //     // cv::Vec3 test = kf.gradient.at<cv::Vec3>(i, j);
-          //     // std::cout << "Grad_x = " << kf.gradient.at<Vector2d>(i, j)[0] << "  Grad_y = " << kf.gradient.at<Vector2d>(i, j)[1] << std::endl;
-          // }
-          kf_depth.at<double>(i, j) = double(kf_omni.Idepth[i][j]);
-      }
-  }
-  cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
-  cv::Canny(kf_I, edges, 150, 300);
+  // // std::cout<<"The width you want is "<<camSysPtr_->cam_left_ptr_->width_<<std::endl;
+  // vpImageConvert::convert(kf_omni.I, kf_I, true);
+  // // vpImageConvert::convert(kf_omni.Idepth, kf_depth);
+  // // image_gradient(kf_I, kf_grad);
+  // // int gradCounter = 0;
+  // kf_depth = cv::Mat::zeros(cam_omni.height, cam_omni.width, CV_64FC1);
+  // pc_->clear();
+  // pc_->reserve(5000);
+  // for (int i = 0; i < cam_omni.height; i++)
+  // {
+  //     for (int j = 0; j < cam_omni.width; j++)
+  //     {
+  //         // if ((kf.gradient.at<Vector2d>(i, j)[0] != 0 || kf.gradient.at<Vector2d>(i, j)[1] != 0) && (kf.depth.at<double>(i, j) > 0))
+  //         // if (kf_grad.at<Vector2d>(i, j)[0] != 0 || kf_grad.at<Vector2d>(i, j)[1] != 0)
+  //         // {
+  //         //     gradCounter++;
+  //         //     // std::cout << "i, j = " << i << " " << j << std::endl;
+  //         //     // cv::Vec3 test = kf.gradient.at<cv::Vec3>(i, j);
+  //         //     // std::cout << "Grad_x = " << kf.gradient.at<Vector2d>(i, j)[0] << "  Grad_y = " << kf.gradient.at<Vector2d>(i, j)[1] << std::endl;
+  //         // }
+  //         kf_depth.at<double>(i, j) = double(kf_omni.Idepth[i][j]);
+  //     }
+  // }
+  // cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
+  // cv::Canny(kf_I, edges, 150, 300);
  
-    cv::imwrite("/home/yufan/Data/2025/0606/edges1.png", edges);
-  cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
-  mMin = 0; 
+  //   cv::imwrite("/home/yufan/Data/2025/0606/edges1.png", edges);
+  // cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
+  // mMin = 0; 
   psFlag = true; 
+  // refreshDepth(edges,kf_depth);
   // std::cout<<mMin<<" "<<mMax<<std::endl;
   // std::cout<<kf_depth<<std::endl;
   // std::cout<<"The pixels with gradient is "<<gradCounter<<std::endl;
@@ -285,13 +286,30 @@ char getch()
 
 void esvo_Tracking::TrackingLoop()
 {
-    moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Dependency/ogre-1.12.2/OgreConfigs/");
-  moteur->init(); //need to initialize in the same thread
-  moteur->loadPointCloud("objecttotrack", evsModelPath_);
-  moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
-  for (int i = 0; i < 100; ++i) {//is rerender works here? --no
+
+
+moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Dependency/ogre-1.12.2/OgreConfigs/");
+moteur->init(); // must be in same thread
+moteur->loadPointCloud("objecttotrack", evsModelPath_);
+moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
+
+// Start timing
+auto start = std::chrono::high_resolution_clock::now();
+
+for (int i = 0; i < 100; ++i)
+{
   rerender();
 }
+
+// Stop timing
+auto end = std::chrono::high_resolution_clock::now();
+std::chrono::duration<double> duration = end - start;
+std::cout << "Time taken for 100 rerenders: " << duration.count() << " seconds" << std::endl;
+std::cout << "Average time per rerender: " << (duration.count() / 100.0) * 1000.0 << " ms" << std::endl;
+
+cv::waitKey(0);
+
+// }
   ros::Rate r(tracking_rate_hz_);
   while(ros::ok())
   {
@@ -345,7 +363,7 @@ void esvo_Tracking::TrackingLoop()
         if(renderCtr == 30)
         {
           auto t_start = std::chrono::steady_clock::now();
-          rerender();
+          // rerender();
           renderCtr = 0;
           auto t_end = std::chrono::steady_clock::now();
           double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
@@ -626,6 +644,93 @@ esvo_Tracking::timeSurfaceCallback(
 }
 
 void 
+esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
+  int count_255 = cv::countNonZero(edge == 255);
+  cv::Mat img = edge;
+  std::cout << "Number of pixels with value 255: " << count_255 << std::endl;
+  // std::cout<<img.type()<<std::endl;
+  cv::cvtColor(img, img, CV_GRAY2BGR);
+  // std::cout<<img<<std::endl;
+
+  pc_->clear();
+  pc_->reserve(5000);
+  int ctr = 0;
+  for (int i = 0; i < img.rows; i++)
+    {
+        for (int j = 0; j < img.cols; j++)
+        {
+            // if ((abs(kf.gradient.at<Vector2d>(i, j)[0] * kf.gradient.at<Vector2d>(i, j)[1]) > 10) && (kf.depth.at<double>(i, j) > 0))
+            if (edge.at<uchar>(i,j) == 255 )
+            {
+                double z = depth.at<double>(i,j);
+
+                if (z == -1.0)
+                {
+
+                  // ctr ++;
+                    bool found = false;
+                    for (int di = -3; di <= 3 && !found; ++di)
+                    {
+                        for (int dj = -3; dj <= 3 && !found; ++dj)
+                        {
+                            int ni = i + di;
+                            int nj = j + dj;
+                            if (ni >= 0 && ni < depth.rows && nj >= 0 && nj < depth.cols)
+                            {
+                                double neighbor_z = depth.at<double>(ni, nj);
+                                if (neighbor_z > 0)
+                                {
+                                    z = neighbor_z;
+                                    found = true;
+                                }
+                            }
+                        }
+                    }
+                    // If found, assign the new depth value
+                    // if (found)
+                    //     kf_depth.at<double>(i, j) = z;
+                }
+
+                // if(z>0)
+                // std::cout<<z<<" ";
+                //   continue;
+                visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
+                Eigen::Vector3d p_world;
+                Eigen::Vector2d p_cam(j, i);
+                camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
+                // Eigen::Vector2d p_tmp;
+                // camSysPtr_->cam_left_ptr_->world2Cam(p_world, p_tmp);
+                // std::cout<<p_tmp<<std::endl;
+                pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+                // std::cout<<p_cam<<p_world<<std::endl;
+            }
+        }
+    }
+  // cv::imwrite("/home/yufan/Data/2025/0606/img.png", img);
+
+  std_msgs::Header header;
+  header.stamp = ros::Time::now();
+  refPCMap_.emplace(header.stamp, pc_); 
+  if(refPCMap_.size() > REF_HISTORY_LENGTH_)
+  {
+    auto it = refPCMap_.begin();
+    refPCMap_.erase(it);
+  }
+  // std::cout<<refPCMap_.size()<<std::endl;
+  // std::cout<<"The point set number is "<<ctr<<std::endl;
+  // std::cout << point_set->header.stamp << std::endl;
+
+  sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
+  // static cv_bridge::CvImage cv_image;
+  // cv_image.encoding = "mono8";
+  // cv_image.image = kf_I.clone();
+  // cv_image.header.stamp = cv_ptr_ps->header.stamp;
+  // pointSet_pub_.publish(cv_image.toImageMsg());
+  pointSet_pub_.publish(msg);
+  // psFlag = false;
+}
+
+void 
 esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
 {
   // std::cout<<"This called"<<std::endl;
@@ -679,8 +784,8 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
                     //     kf_depth.at<double>(i, j) = z;
                 }
 
-                // if(z>0)
-                // std::cout<<z<<" ";
+                if(z>0)
+                std::cout<<z<<" ";
                 //   continue;
                 visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
                 Eigen::Vector3d p_world;
@@ -695,11 +800,13 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
         }
     }
   
-  refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
+  refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_); 
   // std::cout<<refPCMap_.size()<<std::endl;
   // std::cout<<"The point set number is "<<ctr<<std::endl;
   std_msgs::Header header;
   header.stamp = cv_ptr_ps->header.stamp;
+  std::cout << point_set->header.stamp << std::endl;
+
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
   // static cv_bridge::CvImage cv_image;
   // cv_image.encoding = "mono8";
@@ -858,108 +965,33 @@ vpHomogeneousMatrix esvo_Tracking::toHomogeneousMatrix(double *s)
 
 void esvo_Tracking::rerender()
 {
-  // Eigen::Matrix4d eigenMat = cur_.tr_.getTransformationMatrix();
-
-  // // Convert Eigen::Matrix4d to vpHomogeneousMatrix
-  // vpHomogeneousMatrix T;
-  // for (unsigned int i = 0; i < 4; ++i)
-  //   for (unsigned int j = 0; j < 4; ++j)
-  //     T[i][j] = eigenMat(i, j);
-
-  // cMo = cMo * smallShift.inverse();
-
-  cMo = cMo * delta_i;
-
-
-if (moteur->continueRendering())
-{
-    std::cout << delta_i << std::endl;
-  std::cout << cMo << std::endl;
-    moteur->updateCameraParameters(cMo);  // <- this must run every time
+  if (moteur->continueRendering())
     moteur->display(&cMo);
-}
-  else
-  {
-    ROS_INFO("probleme rendu");
-    LOG(ERROR) << "Fatal logic error. Ref pose not available.";
-  }
 
   kf_omni.kfresize(cam_omni.width, cam_omni.height);
-  moteur->getInternalImage(kf_omni.I); 
+  moteur->getInternalImage(kf_omni.I);
   moteur->getInternalImageZ(kf_omni.Idepth);
-  vpImageConvert::convert(kf_omni.I, kf_I, true);
-  std::ostringstream filename;
-  filename << "/home/yufan/Data/2025/0606/edge_" << std::setfill('0') << std::setw(5) << edge_image_counter << ".png";
-  edge_image_counter++;
-  cv::imwrite(filename.str(), kf_I );
-  std::cout << "Pixel(240,320) intensity: " << int(kf_omni.I[240][320]) << " " << int(kf_omni.I[240][322]) << std::endl;
 
-  for (int i = 0; i < cam_omni.height; i++)
+  // Fast depth conversion
+  kf_depth = cv::Mat::zeros(cam_omni.height, cam_omni.width, CV_64FC1);
+  // kf_depth = cv::Mat(cam_omni.height, cam_omni.width, CV_64FC1);
+  for (int i = 0; i < cam_omni.height; ++i)
   {
-    for (int j = 0; j < cam_omni.width; j++)
+    for (int j = 0; j < cam_omni.width; ++j)
     {
-      kf_depth.at<double>(i, j) = double(kf_omni.Idepth[i][j]);
+      kf_depth.at<double>(i, j) = static_cast<double>(kf_omni.Idepth[i][j]);
     }
   }
 
-  cv::GaussianBlur(kf_I, blurred, cv::Size(7, 7), 2.0);
-  cv::Canny(kf_I, edges, 150, 300); 
-  cv::Mat img = edges.clone();
+  cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
 
-  // pc_->clear();
-  // pc_->reserve(5000);
-  // cv::cvtColor(img, img, CV_GRAY2BGR);
+    vpImageConvert::convert(kf_omni.I, kf_I, true);
+  cv::GaussianBlur(kf_I, blurred, cv::Size(3, 3), 1.0);
+  cv::Canny(kf_I, edges, 150, 300);
 
-  // // std::ostringstream filename;
-  // // filename << "/home/yufan/Data/2025/0606/edge_" << std::setfill('0') << std::setw(5) << edge_image_counter << ".png";
-  // // edge_image_counter++;
-  // // cv::imwrite(filename.str(), kf_I );
- 
-  // int ctr = 0; 
-  // for (int i = 0; i < img.rows; i++)
-  // {
-  //   for (int j = 0; j < img.cols; j++)
-  //   { 
-  //     if (edges.at<uchar>(i, j) == 255)
-  //     {
-  //       double z = kf_depth.at<double>(i, j);
-  //       if (z == -1.0)
-  //       { 
-  //         for (int di = -3; di <= 3 && z == -1.0; ++di)
-  //         { 
-  //           for (int dj = -3; dj <= 3 && z == -1.0; ++dj)
-  //           {
-  //             int ni = i + di, nj = j + dj;
-  //             if (ni >= 0 && ni < kf_depth.rows && nj >= 0 && nj < kf_depth.cols)
-  //             { 
-  //               double neighbor_z = kf_depth.at<double>(ni, nj);
-  //               if (neighbor_z > 0)
-  //               {
-  //                 z = neighbor_z;
-  //               }
-  //             }
-  //           }
-  //         }
-  //       }
-
-  //       visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax, Eigen::Vector2d(j, i), img);
-  //       Eigen::Vector3d p_world;
-  //       Eigen::Vector2d p_cam(j, i);
-  //       camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
-  //       pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
-  //       ctr++;
-  //     }
-  //   }
-  // }
-
-  // refPCMap_.emplace(cv_ptr_ps->header.stamp, pc_);
-  // std::cout << refPCMap_.size() << std::endl;
-  // std::cout << "The point set number is " << ctr << std::endl;
-
-  // std_msgs::Header header;
-  // header.stamp = cv_ptr_ps->header.stamp;
-  // sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", img).toImageMsg();
-  // pointSet_pub_.publish(msg);
+  // Fast benchmark-only depth visualization
+  refreshDepth(edges, kf_depth);
 }
+
 
 }// namespace esvo_core
