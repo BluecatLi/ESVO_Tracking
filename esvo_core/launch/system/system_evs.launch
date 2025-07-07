@@ -1,5 +1,5 @@
 <launch>
-	<rosparam param="/use_sim_time">true</rosparam>
+	<rosparam param="/use_sim_time">false</rosparam>
 
   <!-- Time surfaces generation -->
   <node name="TimeSurface_left" pkg="esvo_time_surface" type="esvo_time_surface">

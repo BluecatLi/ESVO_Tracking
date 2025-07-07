@@ -52,6 +52,7 @@ bool RegProblemSolverLM::resetRegProblem(RefFrame* ref, CurFrame* cur)
   }
   if( ref->vPointXYZPtr_.size() < rpConfigPtr_->BATCH_SIZE_ )
   {
+    std::cout<<ref->vPointXYZPtr_.size()<<" "<<rpConfigPtr_->BATCH_SIZE_<<std::endl;
     LOG(INFO) << "resetRegProblem RESET fails for no enough point cloud in the local map. "<<ref->vPointXYZPtr_.size();
     LOG(INFO) << "The system will be re-initialized";
     return false;

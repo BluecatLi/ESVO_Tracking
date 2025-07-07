@@ -1,6 +1,6 @@
 invDepth_min_range: 0.2
 invDepth_max_range: 2
-TS_HISTORY_LENGTH: 100
+TS_HISTORY_LENGTH: 1000
 REF_HISTORY_LENGTH: 10
 tracking_rate_hz: 100
 patch_size_X: 1

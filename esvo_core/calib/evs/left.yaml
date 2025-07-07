@@ -4,7 +4,7 @@ camera_name: Prophesee_Gen3.1
 camera_matrix:
   rows: 3
   cols: 3
-  data: [139.5720535, 0, 76.40814305, 0, 139.5714421, 47.85164295, 0, 0, 1]
+  data: [558.288214 , 0, 305.6325722, 0, 558.2857684, 191.4065718, 0, 0, 1]
 distortion_model: plumb_bob
 distortion_coefficients:
   rows: 1
@@ -19,7 +19,7 @@ rectification_matrix:
 projection_matrix:
   rows: 3
   cols: 4
-  data: [139.5720535, 0, 76.40814305, 0, 0, 139.5714421, 47.85164295, 0, 0, 0, 1, 0]
+  data: [558.288214 , 0, 305.6325722, 0, 0, 558.2857684, 191.4065718, 0, 0, 0, 1, 0]
 T_right_left:
   rows: 3
   cols: 4

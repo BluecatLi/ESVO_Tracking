@@ -185,9 +185,11 @@ class esvo_Tracking
   int edge_image_counter = 0; 
 
   vpHomogeneousMatrix smallShift;
+  ros::Time fake_time_;
 
-    vpHomogeneousMatrix delta_i;
+  vpHomogeneousMatrix delta_i;
   void rerender();
+  Eigen::Matrix4d prev_eigenMat = Eigen::Matrix4d::Identity();
 };
 template <class Scalar, int M, int Options = 0>
 using Vector = Eigen::Matrix<Scalar, M, 1, Options>;

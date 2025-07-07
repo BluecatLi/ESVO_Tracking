@@ -38,7 +38,8 @@ esvo_Tracking::esvo_Tracking(
   rpSolver_(camSysPtr_, rpConfigPtr_, rpType_, NUM_THREAD_TRACKING),
   ESVO_System_Status_("INITIALIZATION"),
   ets_(IDLE),
-  pc_(new PointCloud())
+  pc_(new PointCloud()),
+  fake_time_(ros::Time(1.0))
 {
   // offline data
   dvs_frame_id_        = tools::param(pnh_, "dvs_frame_id", std::string("dvs"));
@@ -56,7 +57,7 @@ esvo_Tracking::esvo_Tracking(
   camIntrinsicPath_            = tools::param(pnh_, "PATH_TO_CAMERA_INTRINSICS", std::string());
   nh_.setParam("/ESVO_SYSTEM_STATUS", ESVO_System_Status_);
   
-  Point_set_sub_ = nh_.subscribe("point_set", 10, &esvo_Tracking::pointsetCallback, this);
+  // Point_set_sub_ = nh_.subscribe("point_set", 10, &esvo_Tracking::pointsetCallback, this);
   // online data callbacks
   events_left_sub_  = nh_.subscribe<dvs_msgs::EventArray>(
     "events_left", 0, &esvo_Tracking::eventsCallback, this);
@@ -149,7 +150,7 @@ esvo_Tracking::esvo_Tracking(
   // pointSet_pub_.publish(cv_image.toImageMsg());
 
 // Define small pose shift: 1cm along X, 1° around Z
-vpHomogeneousMatrix cMo_initial = cMo;  // Save original pose
+c0Mo = cMo;  // Save original pose
 double dx = 0.01; // 1 cm shift per frame along X
 double dy = 0.0;
 double dz = 0.0;
@@ -292,22 +293,22 @@ moteur = new gcOgre(cam, cam_omni.width, cam_omni.height, "/home/yufan/Dependenc
 moteur->init(); // must be in same thread
 moteur->loadPointCloud("objecttotrack", evsModelPath_);
 moteur->setClipDistances(cam_omni.clip_near, cam_omni.clip_far);
+rerender();
+// // Start timing
+// auto start = std::chrono::high_resolution_clock::now();
 
-// Start timing
-auto start = std::chrono::high_resolution_clock::now();
+// for (int i = 0; i < 100; ++i)
+// {
+//   rerender();
+// }
 
-for (int i = 0; i < 100; ++i)
-{
-  rerender();
-}
+// // Stop timing
+// auto end = std::chrono::high_resolution_clock::now();
+// std::chrono::duration<double> duration = end - start;
+// std::cout << "Time taken for 100 rerenders: " << duration.count() << " seconds" << std::endl;
+// std::cout << "Average time per rerender: " << (duration.count() / 100.0) * 1000.0 << " ms" << std::endl;
 
-// Stop timing
-auto end = std::chrono::high_resolution_clock::now();
-std::chrono::duration<double> duration = end - start;
-std::cout << "Time taken for 100 rerenders: " << duration.count() << " seconds" << std::endl;
-std::cout << "Average time per rerender: " << (duration.count() / 100.0) * 1000.0 << " ms" << std::endl;
-
-cv::waitKey(0);
+// cv::waitKey(0);
 
 // }
   ros::Rate r(tracking_rate_hz_);
@@ -347,12 +348,13 @@ cv::waitKey(0);
     // Data Transfer (If mapping node had published refPC.)
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
+
+        // std::cout<<"Times are "<< ref_.t_.toSec() <<" "<< refPCMap_.rbegin()->first.toSec()<<std::endl;
       if(ref_.t_.toSec() < refPCMap_.rbegin()->first.toSec())// new reference map arrived
       // if(1)
       
       {
         refDataTransferring();
-        // std::cout<<"Times are "<< ref_.t_.toSec() <<" "<< refPCMap_.rbegin()->first.toSec()<<std::endl;
         renderFlag = true;
       }
       if(renderFlag)
@@ -360,10 +362,10 @@ cv::waitKey(0);
         auto t_start = std::chrono::steady_clock::now();
         renderCtr ++;
         // std::cout<<"Render counter = "<<renderCtr<<std::endl;
-        if(renderCtr == 30)
+        if(renderCtr == 3)
         {
           auto t_start = std::chrono::steady_clock::now();
-          // rerender();
+          rerender();
           renderCtr = 0;
           auto t_end = std::chrono::steady_clock::now();
           double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
@@ -377,12 +379,13 @@ cv::waitKey(0);
         // if(ref_.t_.toSec() >= TS_history_.rbegin()->first.toSec())
         if(ref_.t_.toSec() > TS_history_.rbegin()->first.toSec())
         {
+          std::cout<<ref_.t_.toSec()<<" "<<TS_history_.rbegin()->first.toSec()<<std::endl;
           LOG(INFO) << "The time_surface observation should be obtained after the reference frame";
           exit(-1); 
         }
         if(!curDataTransferring())
         {
-          // std::cout<<"Case1"<<std::endl;
+          std::cout<<"Case1--------------------------------"<<std::endl;
           continue;
         }
       }
@@ -472,7 +475,7 @@ cv::waitKey(0);
     LOG(INFO) << "pose size: " << lPose_.size();
     LOG(INFO) << "refPCMap_.size(): " << refPCMap_.size() << ", TS_history_.size(): " << TS_history_.size();
     // saveTrajectory(resultPath_ + "result.txt");/home/yufan/Data/2025/0405/
-    saveTrajectory("/home/yufan/Data/2025/0405/result.txt");
+    saveTrajectory("/home/yufan/Data/2025/0623/result.txt");
   }
 }
 
@@ -488,16 +491,16 @@ esvo_Tracking::refDataTransferring()
 //  LOG(INFO) << "SYSTEM STATUS(T"
   if(ESVO_System_Status_ == "INITIALIZATION" && ets_ == IDLE)
     ref_.tr_.setIdentity();
-  if(ESVO_System_Status_ == "WORKING" || (ESVO_System_Status_ == "INITIALIZATION" && ets_ == WORKING))
-  {
-    if(!getPoseAt(ref_.t_, ref_.tr_, dvs_frame_id_))
-    {
-      LOG(INFO) << "ESVO_System_Status_: " << ESVO_System_Status_ << ", ref_.t_: " << ref_.t_.toNSec();
-      LOG(INFO) << "Logic error ! There must be a pose for the given timestamp, because mapping has been finished.";
-      exit(-1);
-      return false;
-    }
-  }
+  // if(ESVO_System_Status_ == "WORKING" || (ESVO_System_Status_ == "INITIALIZATION" && ets_ == WORKING))
+  // {
+  //   if(!getPoseAt(ref_.t_, ref_.tr_, dvs_frame_id_))
+  //   {
+  //     LOG(INFO) << "ESVO_System_Status_: " << ESVO_System_Status_ << ", ref_.t_: " << ref_.t_.toNSec();
+  //     LOG(INFO) << "Logic error ! There must be a pose for the given timestamp, because mapping has been finished.";
+  //     exit(-1);
+  //     return false;
+  //   }
+  // }
 
   size_t numPoint = refPCMap_.rbegin()->second->size();
   ref_.vPointXYZPtr_.clear();
@@ -509,7 +512,7 @@ esvo_Tracking::refDataTransferring()
     ref_.vPointXYZPtr_.push_back(PointXYZ_begin_it.base());// Copy the pointer of the pointXYZ
     PointXYZ_begin_it++;
   }
-  // std::cout<<ref_.tr_<<std::endl;
+  std::cout<<ref_.vPointXYZPtr_.size()<<".."<<std::endl;
   return true;
 }
 
@@ -535,6 +538,7 @@ esvo_Tracking::curDataTransferring()
     cur_.tr_ = ref_.tr_;
 //    LOG(INFO) << "(IDLE) Assign cur's ("<< cur_.t_.toNSec() << ") pose with ref's at " << ref_.t_.toNSec();
     // LOG(INFO) << " " << cur_.tr_.getTransformationMatrix() << " ";
+    std::cout<<"Cur transform set to identity"<<std::endl;
   }
   if(ESVO_System_Status_ == "WORKING" || (ESVO_System_Status_ == "INITIALIZATION" && ets_ == WORKING))
   {
@@ -652,6 +656,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   cv::cvtColor(img, img, CV_GRAY2BGR);
   // std::cout<<img<<std::endl;
 
+
   pc_->clear();
   pc_->reserve(5000);
   int ctr = 0;
@@ -707,16 +712,23 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
         }
     }
   // cv::imwrite("/home/yufan/Data/2025/0606/img.png", img);
-
+  edge_image_counter ++;
+  std::ostringstream oss;
+  oss << "/home/yufan/Data/2025/0708/cn/edges_" << std::setfill('0') << std::setw(3) << edge_image_counter << ".png";
+  cv::imwrite(oss.str(), edge);
   std_msgs::Header header;
-  header.stamp = ros::Time::now();
+  header.stamp = fake_time_;
+  fake_time_ += ros::Duration(0.1);  // Add 1 second
+
   refPCMap_.emplace(header.stamp, pc_); 
   if(refPCMap_.size() > REF_HISTORY_LENGTH_)
   {
     auto it = refPCMap_.begin();
     refPCMap_.erase(it);
+    // std::cout<<"Depth map refreshed!!"<<std::endl;
   }
-  // std::cout<<refPCMap_.size()<<std::endl;
+  
+  // std::cout<<refPCMap_.rbegin()->first.toSec()<<std::endl;
   // std::cout<<"The point set number is "<<ctr<<std::endl;
   // std::cout << point_set->header.stamp << std::endl;
 
@@ -965,8 +977,51 @@ vpHomogeneousMatrix esvo_Tracking::toHomogeneousMatrix(double *s)
 
 void esvo_Tracking::rerender()
 {
-  if (moteur->continueRendering())
-    moteur->display(&cMo);
+// // Translation
+// double tx = -0.080910067;
+// double ty = -0.003411980;
+// double tz = -0.007450045;
+
+// // Quaternion (x, y, z, w)
+// double qx = -0.028764999;
+// double qy = -0.029430876;
+// double qz =  0.026615042;
+// double qw =  0.998798297;
+
+// // Convert quaternion to rotation matrix using Eigen
+// Eigen::Quaterniond q(qw, qx, qy, qz);
+// Eigen::Matrix3d R = q.normalized().toRotationMatrix();
+
+// // Fill into vpHomogeneousMatrix
+// vpHomogeneousMatrix T;
+
+// for (unsigned int i = 0; i < 3; ++i)
+// {
+//   for (unsigned int j = 0; j < 3; ++j)
+//     T[i][j] = R(i, j);
+// }
+
+// T[0][3] = tx;
+// T[1][3] = ty;
+// T[2][3] = tz;
+// T[3][3] = 1;
+
+Eigen::Matrix4d curr_eigenMat = cur_.tr_.getTransformationMatrix();
+// std::cout<<edge_image_counter<<"  ..............."<<std::endl;
+
+vpHomogeneousMatrix T_rel;
+for (unsigned int i = 0; i < 4; ++i)
+  for (unsigned int j = 0; j < 4; ++j)
+    T_rel[i][j] = curr_eigenMat(i, j);
+// std::cout<<T_rel<<std::endl;
+// cMo = T_rel.inverse() * c0Mo;
+cMo = T_rel.inverse() * c0Mo;
+// cur_.tr_.setIdentity();
+ref_.tr_=cur_.tr_;
+// prev_eigenMat = curr_eigenMat;
+
+if (moteur->continueRendering())
+  moteur->display(&cMo);
 
   kf_omni.kfresize(cam_omni.width, cam_omni.height);
   moteur->getInternalImage(kf_omni.I);
@@ -985,7 +1040,7 @@ void esvo_Tracking::rerender()
 
   cv::minMaxLoc(kf_depth, &mMin, &mMax, &minP, &maxP);
 
-    vpImageConvert::convert(kf_omni.I, kf_I, true);
+  vpImageConvert::convert(kf_omni.I, kf_I, true);
   cv::GaussianBlur(kf_I, blurred, cv::Size(3, 3), 1.0);
   cv::Canny(kf_I, edges, 150, 300);
 

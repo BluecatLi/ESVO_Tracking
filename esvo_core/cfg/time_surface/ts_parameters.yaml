@@ -1,4 +1,4 @@
-use_sim_time: True
+use_sim_time: False
 ignore_polarity: True
 time_surface_mode: 0 # 0: Backward; 1: Forward
 decay_ms: 30
