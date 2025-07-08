@@ -475,7 +475,7 @@ rerender();
     LOG(INFO) << "pose size: " << lPose_.size();
     LOG(INFO) << "refPCMap_.size(): " << refPCMap_.size() << ", TS_history_.size(): " << TS_history_.size();
     // saveTrajectory(resultPath_ + "result.txt");/home/yufan/Data/2025/0405/
-    saveTrajectory("/home/yufan/Data/2025/0623/result.txt");
+    saveTrajectory("/home/yufan/Data/2025/0708/cz/result.txt");
   }
 }
 
@@ -715,7 +715,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   edge_image_counter ++;
   std::ostringstream oss;
   oss << "/home/yufan/Data/2025/0708/cn/edges_" << std::setfill('0') << std::setw(3) << edge_image_counter << ".png";
-  cv::imwrite(oss.str(), edge);
+  // cv::imwrite(oss.str(), edge);
   std_msgs::Header header;
   header.stamp = fake_time_;
   fake_time_ += ros::Duration(0.1);  // Add 1 second
@@ -725,7 +725,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   {
     auto it = refPCMap_.begin();
     refPCMap_.erase(it);
-    // std::cout<<"Depth map refreshed!!"<<std::endl;
+    std::cout<<"Depth map refreshed!!"<<std::endl;
   }
   
   // std::cout<<refPCMap_.rbegin()->first.toSec()<<std::endl;
