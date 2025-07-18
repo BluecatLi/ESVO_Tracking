@@ -275,8 +275,6 @@ int RegProblemLM::df(const Eigen::Matrix<double,6,1>& x, Eigen::MatrixXd& fjac) 
 
   // LOG(INFO) << "fjac:\n" << fjac;
   // LOG(INFO) << "Jacobian Computation takes " << tt.toc() << " ms.";
-  fjac.leftCols(3).setZero(); // remove rotation derivatives
-
   return 0;
 }
 
@@ -331,67 +329,47 @@ RegProblemLM::computeJ_G(const Eigen::Matrix<double,6,1>&x, Eigen::Matrix<double
   J_G.block<3,3>(9,0) = O33; J_G.block<3,3>(9,3) = I33;
 }
 
-// void
-// RegProblemLM::getWarpingTransformation(
-//   Eigen::Matrix4d& warpingTransf,
-//   const Eigen::Matrix<double, 6, 1>& x) const
-// {
-//   // To calcuate R_cur_ref, t_cur_ref
-//   Eigen::Matrix3d R_cur_ref;
-//   Eigen::Vector3d t_cur_ref;
-//   // get delta cayley paramters (this corresponds to the delta motion of the ref frame)
-//   Eigen::Vector3d dc = x.block<3,1>(0,0);
-//   Eigen::Vector3d dt = x.block<3,1>(3,0);
-//   // add rotation
-//   Eigen::Matrix3d dR = tools::cayley2rot(dc);
-//   Eigen::Matrix3d newR = dR.transpose() * R_.transpose();
-//   Eigen::JacobiSVD<Eigen::Matrix3d> svd(newR, Eigen::ComputeFullU | Eigen::ComputeFullV );
-//   R_cur_ref = svd.matrixU() * svd.matrixV().transpose();
-//   if( R_cur_ref.determinant() < 0.0 )
-//   {
-//     LOG(INFO) << "oops the matrix is left-handed\n";
-//     exit(-1);
-//   }
-//   t_cur_ref = -R_cur_ref * ( dt + dR * t_ );
-//   warpingTransf.block<3,3>(0,0) = R_cur_ref;
-//   warpingTransf.block<3,1>(0,3) = t_cur_ref;
-// }
-
-void RegProblemLM::getWarpingTransformation(
+void
+RegProblemLM::getWarpingTransformation(
   Eigen::Matrix4d& warpingTransf,
   const Eigen::Matrix<double, 6, 1>& x) const
 {
-  // Replace existing logic with translation-only
-  Eigen::Vector3d dt = x.block<3,1>(3,0); // only use translation
-  Eigen::Matrix3d R_cur_ref = R_.transpose(); // keep original rotation
-  Eigen::Vector3d t_cur_ref = -R_cur_ref * (dt + t_);
-
-  warpingTransf.setIdentity();
+  // To calcuate R_cur_ref, t_cur_ref
+  Eigen::Matrix3d R_cur_ref;
+  Eigen::Vector3d t_cur_ref;
+  // get delta cayley paramters (this corresponds to the delta motion of the ref frame)
+  Eigen::Vector3d dc = x.block<3,1>(0,0);
+  Eigen::Vector3d dt = x.block<3,1>(3,0);
+  // add rotation
+  Eigen::Matrix3d dR = tools::cayley2rot(dc);
+  Eigen::Matrix3d newR = dR.transpose() * R_.transpose();
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(newR, Eigen::ComputeFullU | Eigen::ComputeFullV );
+  R_cur_ref = svd.matrixU() * svd.matrixV().transpose();
+  if( R_cur_ref.determinant() < 0.0 )
+  {
+    LOG(INFO) << "oops the matrix is left-handed\n";
+    exit(-1);
+  }
+  t_cur_ref = -R_cur_ref * ( dt + dR * t_ );
   warpingTransf.block<3,3>(0,0) = R_cur_ref;
   warpingTransf.block<3,1>(0,3) = t_cur_ref;
 }
 
-// void
-// RegProblemLM::addMotionUpdate(const Eigen::Matrix<double, 6, 1>& dx)
-// {
-//   // To update R_, t_
-//   Eigen::Vector3d dc = dx.block<3,1>(0,0);
-//   Eigen::Vector3d dt = dx.block<3,1>(3,0);
-//   // add rotation
-//   Eigen::Matrix3d dR = tools::cayley2rot(dc);
-//   Eigen::Matrix3d newR = R_ * dR;
-//   Eigen::JacobiSVD<Eigen::Matrix3d> svd(newR, Eigen::ComputeFullU | Eigen::ComputeFullV );
-//   R_ = svd.matrixU() * svd.matrixV().transpose();
-//   t_ = dt + dR * t_;
-// }
 
-void RegProblemLM::addMotionUpdate(const Eigen::Matrix<double, 6, 1>& dx)
+
+void
+RegProblemLM::addMotionUpdate(const Eigen::Matrix<double, 6, 1>& dx)
 {
-  // Only update translation
+  // To update R_, t_
+  Eigen::Vector3d dc = dx.block<3,1>(0,0);
   Eigen::Vector3d dt = dx.block<3,1>(3,0);
-  t_ = dt + t_; // skip Cayley rotation update
+  // add rotation
+  Eigen::Matrix3d dR = tools::cayley2rot(dc);
+  Eigen::Matrix3d newR = R_ * dR;
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(newR, Eigen::ComputeFullU | Eigen::ComputeFullV );
+  R_ = svd.matrixU() * svd.matrixV().transpose();
+  t_ = dt + dR * t_;
 }
-
 
 void RegProblemLM::setPose()
 {
