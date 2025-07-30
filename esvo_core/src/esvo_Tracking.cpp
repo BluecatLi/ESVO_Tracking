@@ -362,7 +362,7 @@ rerender();
         auto t_start = std::chrono::steady_clock::now();
         renderCtr ++;
         // std::cout<<"Render counter = "<<renderCtr<<std::endl;
-        if(renderCtr == 3)
+        if(renderCtr == 30)
         {
           auto t_start = std::chrono::steady_clock::now();
           rerender();
@@ -703,6 +703,8 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
                 Eigen::Vector3d p_world;
                 Eigen::Vector2d p_cam(j, i);
                 camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
+                Eigen::Matrix<double, 4, 4> T_world_result = ref_.tr_.getTransformationMatrix();
+                p_world = T_world_result.block<3,3>(0,0) * p_world + T_world_result.block<3,1>(0,3);
                 // Eigen::Vector2d p_tmp;
                 // camSysPtr_->cam_left_ptr_->world2Cam(p_world, p_tmp);
                 // std::cout<<p_tmp<<std::endl;
@@ -1042,7 +1044,8 @@ if (moteur->continueRendering())
 
   vpImageConvert::convert(kf_omni.I, kf_I, true);
   cv::GaussianBlur(kf_I, blurred, cv::Size(3, 3), 1.0);
-  cv::Canny(kf_I, edges, 150, 300);
+  cv::Canny(kf_I, edges, 200, 600);
+
 
   // Fast benchmark-only depth visualization
   refreshDepth(edges, kf_depth);
