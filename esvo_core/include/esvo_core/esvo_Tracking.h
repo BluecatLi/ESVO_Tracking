@@ -175,7 +175,8 @@ class esvo_Tracking
 
   cv::Point minP, maxP;
   double mMin, mMax;
-  PointCloud::Ptr pc_;
+  // PointCloud::Ptr pc_;
+  pcl::PointCloud<pcl::PointXYZI>::Ptr pc_;
   bool psFlag;
 
   int renderCtr=0;

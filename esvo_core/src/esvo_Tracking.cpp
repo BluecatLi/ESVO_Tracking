@@ -475,7 +475,7 @@ rerender();
     LOG(INFO) << "pose size: " << lPose_.size();
     LOG(INFO) << "refPCMap_.size(): " << refPCMap_.size() << ", TS_history_.size(): " << TS_history_.size();
     // saveTrajectory(resultPath_ + "result.txt");/home/yufan/Data/2025/0405/
-    saveTrajectory("/home/yufan/Data/2025/0708/cz/result.txt");
+    saveTrajectory("/home/yufan/Data/2025/0801/cn/result.txt");
   }
 }
 
@@ -660,12 +660,13 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   pc_->clear();
   pc_->reserve(5000);
   int ctr = 0;
+  float thres = 80.0;
   for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)
         {
             // if ((abs(kf.gradient.at<Vector2d>(i, j)[0] * kf.gradient.at<Vector2d>(i, j)[1]) > 10) && (kf.depth.at<double>(i, j) > 0))
-            if (edge.at<uchar>(i,j) == 255 )
+            if (edge.at<uchar>(i,j) > thres )
             {
                 double z = depth.at<double>(i,j);
 
@@ -699,24 +700,30 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
                 // if(z>0)
                 // std::cout<<z<<" ";
                 //   continue;
-                visualizor_.DrawPoint(1.0 / z, 1.0 / 0.3, 1.0 / mMax,  Eigen::Vector2d(j,i), img);
+                visualizor_.DrawPoint(abs(edge.at<uchar>(i,j)), 255, 40,  Eigen::Vector2d(j,i), img);
                 Eigen::Vector3d p_world;
                 Eigen::Vector2d p_cam(j, i);
                 camSysPtr_->cam_left_ptr_->cam2World(p_cam, 1.0 / z, p_world);
                 Eigen::Matrix<double, 4, 4> T_world_result = ref_.tr_.getTransformationMatrix();
                 p_world = T_world_result.block<3,3>(0,0) * p_world + T_world_result.block<3,1>(0,3);
+
                 // Eigen::Vector2d p_tmp;
                 // camSysPtr_->cam_left_ptr_->world2Cam(p_world, p_tmp);
                 // std::cout<<p_tmp<<std::endl;
-                pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+                pcl::PointXYZI tpc = pcl::PointXYZI(0.0);
+                tpc.x = p_world(0);
+                tpc.y = p_world(1);
+                tpc.z = p_world(2);
+                tpc.intensity = (abs(edge.at<uchar>(i,j))-thres)/(255.0-thres);
+                pc_->push_back(tpc);
                 // std::cout<<p_cam<<p_world<<std::endl;
             }
         }
     }
   // cv::imwrite("/home/yufan/Data/2025/0606/img.png", img);
   edge_image_counter ++;
-  std::ostringstream oss;
-  oss << "/home/yufan/Data/2025/0708/cn/edges_" << std::setfill('0') << std::setw(3) << edge_image_counter << ".png";
+  // std::ostringstream oss;
+  // oss << "/home/yufan/Data/2025/0708/cn/edges_" << std::setfill('0') << std::setw(3) << edge_image_counter << ".png";
   // cv::imwrite(oss.str(), edge);
   std_msgs::Header header;
   header.stamp = fake_time_;
@@ -727,7 +734,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   {
     auto it = refPCMap_.begin();
     refPCMap_.erase(it);
-    std::cout<<"Depth map refreshed!!"<<std::endl;
+    // std::cout<<"Depth map refreshed!!"<<std::endl;
   }
   
   // std::cout<<refPCMap_.rbegin()->first.toSec()<<std::endl;
@@ -808,7 +815,7 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
                 // Eigen::Vector2d p_tmp;
                 // camSysPtr_->cam_left_ptr_->world2Cam(p_world, p_tmp);
                 // std::cout<<p_tmp<<std::endl;
-                pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+                // pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
                 // std::cout<<p_cam<<p_world<<std::endl;
             }
         }
@@ -1044,8 +1051,9 @@ if (moteur->continueRendering())
 
   vpImageConvert::convert(kf_omni.I, kf_I, true);
   cv::GaussianBlur(kf_I, blurred, cv::Size(3, 3), 1.0);
-  cv::Canny(kf_I, edges, 200, 600);
+  // cv::Canny(kf_I, edges, 200, 600);
 
+  cv::Sobel(kf_I, edges, -1 ,1, 1);
 
   // Fast benchmark-only depth visualization
   refreshDepth(edges, kf_depth);

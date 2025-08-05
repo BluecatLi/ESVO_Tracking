@@ -931,10 +931,10 @@ void esvo_Mapping::publishPointCloud(
   {
     Eigen::Vector3d p_world = T_world_result.block<3,3>(0,0) * it->p_cam()
                               + T_world_result.block<3,1>(0,3);
-    pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+    // pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
 
-    if(it->p_cam().norm() < visualize_range_)
-      pc_near_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+    // if(it->p_cam().norm() < visualize_range_)
+    //   pc_near_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
     // For debug
 //    if(it->p_cam().norm() > FarthestDistance)
 //    {
@@ -963,7 +963,7 @@ void esvo_Mapping::publishPointCloud(
     if(t.toSec() - t_last_pub_pc_ > visualizeGPC_interval_)
     {
       PointCloud::Ptr pc_filtered(new PointCloud());
-      pcl::VoxelGrid<pcl::PointXYZ> sor;
+      pcl::VoxelGrid<pcl::PointXYZI> sor;
       sor.setInputCloud(pc_near_);
       // sor.setLeafSize(0.03, 0.03, 0.03);// Used in small scale environment.
       sor.setLeafSize(0.3, 0.3, 0.3);// Used in large scale environment.

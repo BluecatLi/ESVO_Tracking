@@ -9,6 +9,7 @@
 
 #include <pcl/point_types.h>
 #include <pcl_ros/point_cloud.h>
+#include <mutex>
 
 namespace esvo_core
 {
@@ -61,7 +62,7 @@ struct RefFrame
 {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   ros::Time t_;
-  std::vector<pcl::PointXYZ*> vPointXYZPtr_;
+  std::vector<pcl::PointXYZI*> vPointXYZPtr_;
   Transformation tr_;
 };
 

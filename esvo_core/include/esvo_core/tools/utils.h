@@ -35,7 +35,7 @@ namespace tools
 #define NUM_THREAD_TRACKING 1
 #define NUM_THREAD_MAPPING 4
 
-typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+typedef pcl::PointCloud<pcl::PointXYZI> PointCloud;
 using RefPointCloudMap = std::map<ros::Time, PointCloud::Ptr>;
 
 using Transformation = kindr::minimal::QuatTransformation;

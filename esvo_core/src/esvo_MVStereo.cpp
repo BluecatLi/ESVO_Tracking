@@ -1015,7 +1015,7 @@ void esvo_MVStereo::publishPointCloud(
   {
     Eigen::Vector3d p_world = T_world_result.block<3,3>(0,0) * it->p_cam()
                               + T_world_result.block<3,1>(0,3);
-    pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
+    // pc_->push_back(pcl::PointXYZ(p_world(0), p_world(1), p_world(2)));
 
     if(it->p_cam().norm() > FarthestDistance)
     {
