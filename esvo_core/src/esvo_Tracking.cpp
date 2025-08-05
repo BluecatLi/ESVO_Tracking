@@ -362,7 +362,7 @@ rerender();
         auto t_start = std::chrono::steady_clock::now();
         renderCtr ++;
         // std::cout<<"Render counter = "<<renderCtr<<std::endl;
-        if(renderCtr == 30)
+        if(renderCtr == 5)
         {
           auto t_start = std::chrono::steady_clock::now();
           rerender();
@@ -660,7 +660,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   pc_->clear();
   pc_->reserve(5000);
   int ctr = 0;
-  float thres = 80.0;
+  float thres = 100.0;
   for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)
