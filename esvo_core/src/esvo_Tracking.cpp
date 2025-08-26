@@ -475,7 +475,7 @@ rerender();
     LOG(INFO) << "pose size: " << lPose_.size();
     LOG(INFO) << "refPCMap_.size(): " << refPCMap_.size() << ", TS_history_.size(): " << TS_history_.size();
     // saveTrajectory(resultPath_ + "result.txt");/home/yufan/Data/2025/0405/
-    saveTrajectory("/home/yufan/Data/2025/0801/cn/result.txt");
+    saveTrajectory("/home/yufan/Data/2025/0815/ck/result.txt");
   }
 }
 
@@ -660,7 +660,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   pc_->clear();
   pc_->reserve(5000);
   int ctr = 0;
-  float thres = 100.0;
+  float thres = 80.0;
   for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)
