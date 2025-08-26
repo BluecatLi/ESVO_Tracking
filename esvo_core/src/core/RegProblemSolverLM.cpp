@@ -312,4 +312,3 @@ void RegProblemSolverLM::setevsPublisher(
 }
 }//namespace core
 }//namespace esvo_core
-

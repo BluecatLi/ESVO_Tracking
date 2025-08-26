@@ -131,6 +131,7 @@ private:
   void createEventAccumulation(int N, const ros::Time& external_sync_time);
   void createEventAccumulation2(int N, const ros::Time& external_sync_time);
   void createEventDistanceField(int N, const ros::Time& external_sync_time);
+  void createEventDistanceField_ConsN(int N, const ros::Time& external_sync_time);
   void assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr);
   void drawPlot(const cv::Mat& data, const std::string& title, const std::string& path, cv::Scalar lineColor);
   // callbacks
