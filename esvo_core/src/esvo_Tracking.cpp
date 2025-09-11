@@ -4,9 +4,10 @@
 #include <minkindr_conversions/kindr_tf.h>
 #include <tf/transform_broadcaster.h>
 #include <sys/stat.h>
+#include <iomanip>
 
-// #define ESVO_CORE_TRACKING_DEBUG
-// #define ESVO_CORE_TRACKING_LOG
+#define ESVO_CORE_TRACKING_DEBUG
+#define ESVO_CORE_TRACKING_LOG
 
 namespace esvo_core
 {
@@ -368,12 +369,19 @@ rerender();
           rerender();
           renderCtr = 0;
           auto t_end = std::chrono::steady_clock::now();
-          double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-          std::cout << "[Timer] Code block took " << elapsed_ms << " ms.\n";
+          // double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+          // std::cout << "[Timer] Code block took " << elapsed_ms << " ms.\n";
         } 
     } 
       // std::cout<<cur_.t_.toSec() - TS_history_.rbegin()->first.toSec()<<std::endl;
-      // std::cout<<TS_history_.rbegin()->first.toSec()<<std::endl;
+
+
+// 1) Print seconds with enough fractional digits
+std::cout << std::fixed << std::setprecision(9)
+          << cur_.t_.toSec() << '\n'
+          << TS_history_.rbegin()->first.toSec() << '\n';
+
+
       if(cur_.t_.toSec() < TS_history_.rbegin()->first.toSec())// new observation arrived
       {
         // if(ref_.t_.toSec() >= TS_history_.rbegin()->first.toSec())
@@ -391,7 +399,7 @@ rerender();
       }
       else
       {
-        // std::cout<<"Case2"<<std::endl;
+        std::cout<<"Case2"<<std::endl;
         continue;
       }
     }
@@ -619,7 +627,7 @@ esvo_Tracking::timeSurfaceCallback(
   const sensor_msgs::ImageConstPtr &time_surface_left,
   const sensor_msgs::ImageConstPtr &time_surface_right)
 {
-  // std::cout<<"Called"<<std::endl;
+  std::cout<<"Called"<<std::endl;
   std::lock_guard<std::mutex> lock(data_mutex_);
   cv_bridge::CvImagePtr cv_ptr_left, cv_ptr_right;
   try
@@ -633,8 +641,11 @@ esvo_Tracking::timeSurfaceCallback(
     return;
   }
 
+  // std::cout<<"---"<<std::endl;
   // push back the most current TS.
   ros::Time t_new_ts = time_surface_left->header.stamp;
+  // std::cout << std::fixed << std::setprecision(9)
+  //         << t_new_ts.toSec() << '\n';
   TS_history_.emplace(t_new_ts, TimeSurfaceObservation(cv_ptr_left, cv_ptr_right, TS_id_, false));
   TS_id_++;
 
@@ -644,7 +655,7 @@ esvo_Tracking::timeSurfaceCallback(
     auto it = TS_history_.begin();
     TS_history_.erase(it);
   }
-  // std::cout<<TS_history_.size()<<std::endl;
+  // std::cout<<"..."<<TS_history_.size()<<std::endl;
 }
 
 void 

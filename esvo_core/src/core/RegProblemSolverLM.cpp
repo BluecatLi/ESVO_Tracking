@@ -177,7 +177,7 @@ bool RegProblemSolverLM::solve_analytical()
     }
     Eigen::LevenbergMarquardtSpace::Status status = lm.minimizeOneStep(x);
     // std::cout<<"Poses are "<<x<<std::endl;
-    regProblemPtr_->addMotionUpdate(x);
+    regProblemPtr_->addMotionUpdate(2.0 * x);
 
     // Eigen::Vector3d dc = x.block<3,1>(0,0);
     // dt = x.block<3,1>(3,0);
