@@ -69,6 +69,7 @@ esvo_Tracking::esvo_Tracking(
   map_sub_ = nh_.subscribe("pointcloud", 0, &esvo_Tracking::refMapCallback, this);// local map in the ref view.
   stampedPose_sub_ = nh_.subscribe("stamped_pose", 0, &esvo_Tracking::stampedPoseCallback, this);// for accessing the pose of the ref view.
   pointSet_pub_ = it_.advertise("/Depth_Pointset", 1);
+  brightness_pub_ = it_.advertise("/Brightness", 1);
 
 
   //orfcv
@@ -244,6 +245,7 @@ esvo_Tracking::~esvo_Tracking()
 {
   pose_pub_.shutdown();
   pointSet_pub_.shutdown();
+  brightness_pub_.shutdown();
   evs_pub_.shutdown();
 }
 int kbhit()
@@ -483,7 +485,7 @@ std::cout << std::fixed << std::setprecision(9)
     LOG(INFO) << "pose size: " << lPose_.size();
     LOG(INFO) << "refPCMap_.size(): " << refPCMap_.size() << ", TS_history_.size(): " << TS_history_.size();
     // saveTrajectory(resultPath_ + "result.txt");/home/yufan/Data/2025/0405/
-    saveTrajectory("/home/yufan/Data/2025/0815/ck/result.txt");
+    saveTrajectory("/home/yufan/Data/2025/0920/result.txt");
   }
 }
 
@@ -671,7 +673,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   pc_->clear();
   pc_->reserve(5000);
   int ctr = 0;
-  float thres = 80.0;
+  float thres = 20.0;
   for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)
@@ -1065,6 +1067,10 @@ if (moteur->continueRendering())
   // cv::Canny(kf_I, edges, 200, 600);
 
   cv::Sobel(kf_I, edges, -1 ,1, 1);
+  std_msgs::Header header;
+  header.stamp = fake_time_;
+  sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "mono8", kf_I).toImageMsg();
+  brightness_pub_.publish(msg);
 
   // Fast benchmark-only depth visualization
   refreshDepth(edges, kf_depth);

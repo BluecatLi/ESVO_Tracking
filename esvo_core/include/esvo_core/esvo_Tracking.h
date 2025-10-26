@@ -107,7 +107,7 @@ class esvo_Tracking
   ros::Subscriber stampedPose_sub_;
   image_transport::Publisher reprojMap_pub_left_;
   // yufan added
-  image_transport::Publisher pointSet_pub_;
+  image_transport::Publisher pointSet_pub_, brightness_pub_;
 
   // publishers
   ros::Publisher pose_pub_, path_pub_, evs_pub_;

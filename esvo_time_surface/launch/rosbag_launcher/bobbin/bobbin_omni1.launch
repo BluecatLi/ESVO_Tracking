@@ -2,7 +2,7 @@
   <!-- ROS BAG -->
   <rosparam param="/use_sim_time">true</rosparam>
   <node pkg="rosbag" type="play" name="play" output="screen" required="true"
-    args="/home/yufan/Data/Dataset/250815/cupnoodle/x+-50_1.bag -r 0.5 --clock">
+    args="/home/yufan/Data/Dataset/250929/drill/tr_1.bag -r 1.0 --clock">
   </node>
 
   <!-- Publish stereo camera calibration -->

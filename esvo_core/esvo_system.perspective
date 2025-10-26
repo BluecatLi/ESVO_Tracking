@@ -69,7 +69,7 @@
                   "type": "repr"
                 },
                 "mouse_pub_topic": {
-                  "repr": "'/Point_Set_mouse_left'",
+                  "repr": "'/Brightness_mouse_left'",
                   "type": "repr"
                 },
                 "num_gridlines": {
@@ -93,7 +93,7 @@
                   "type": "repr"
                 },
                 "topic": {
-                  "repr": "'/Point_Set'",
+                  "repr": "'/Brightness'",
                   "type": "repr"
                 },
                 "zoom1": {

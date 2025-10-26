@@ -808,7 +808,8 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   cv::Mat event_accumulation;
   event_accumulation = cv::Mat::zeros(sensor_size_, CV_64F);
   auto it = events_.begin(); //  iterator pointing to the first element
-  ros::Time& tsBegin = it->ts;
+  ros::Time tsBegin; 
+  tsBegin = it->ts;
   const dvs_msgs::Event& lastEv = *it;
   for (int i = 0; i < N && it != events_.end(); ++i, ++it) {
       const dvs_msgs::Event& event = *it;
@@ -817,21 +818,33 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
         continue;
       event_accumulation.at<double>(event.y,event.x) = 255;
   }
-  size_t remove_events = static_cast<size_t>(N);
-  events_.erase(events_.begin(), events_.begin() + remove_events);
-
-  std::cout<<"all right"<<std::endl;
+  size_t remove_events = static_cast<size_t>(20000);
+  // std::cout << std::fixed << std::setprecision(9) << "is "
+  //         << tsBegin.toSec() << '\n';
+  // std::cout<<"all right"<<std::endl;
   // const dvs_msgs::Event& firstEv = *it;
   // std::cout<<1000*(lastEv.ts-firstEv.ts).toSec()<<std::endl;
   // std::cout<<firstEv.ts<<"   "<<lastEv.ts<<std::endl;
   event_accumulation.convertTo(event_accumulation, CV_8U);
+  int suppression_window_size = 3;
+  cv::Mat thinned = NMS(event_accumulation, suppression_window_size);
   cv::Mat outputImage;
   int kernelSize = 1; // Kernel size must be odd and greater than 1 (e.g., 3, 5, 7)
     cv::medianBlur(event_accumulation, outputImage, kernelSize);
   cv::Mat temp;
   cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
   int ctr = 0;
-  assignDistances(outputImage, disI, 10, ctr);
+    assignDistances(outputImage, disI, 8, ctr);
+  events_.erase(events_.begin(), events_.begin() + remove_events);
+  // if(oddctr){
+  //   assignDistances(outputImage, disI, 12, ctr);
+  //   oddctr = false;
+  // }
+  // else{
+  //   assignDistances(outputImage, disI, 6, ctr);
+  //   oddctr = true;
+  // }
+  
   // cv::GaussianBlur(outputImage, outputImage, cv::Size(5, 5), 1.4);
   // // cv::Mat row = disI.col(320).t();
   // cv::Mat row = disI.row(240);
@@ -853,11 +866,12 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
 
-  // // //Save images for debug
-  // std::stringstream ss;
-  // ss << std::setw(10) << std::setfill('0') << external_sync_time.sec << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
-  // std::string filename = "/home/yufan/Data/2025/0322/exp1/DF2/" + ss.str() + ".png";
-  // cv::imwrite(filename, outputImage);
+  // //Save images for debug
+  std::stringstream ss;
+  ss << std::setw(10) << std::setfill('0') << goodie << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
+  std::string filename = "/home/yufan/Data/2025/1006/exp1/DF1/" + ss.str() + ".png";
+  goodie ++;
+  cv::imwrite(filename, outputImage);
 
   // cv::imwrite("/home/yufan/Data/2025/0331/edge.png", outputImage);
 
@@ -874,6 +888,35 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
     cv_image3.image = pointSet.clone();
     pointSet_pub_.publish(cv_image3.toImageMsg());
   }
+}
+cv::Mat TimeSurface::NMS(const cv::Mat& event_accum, int kernel_size)
+{
+    if (kernel_size % 2 == 0) {
+        kernel_size++;
+    }
+
+    // 步骤1: 创建一个密度/分数图。
+    // 使用盒子滤波器（均值滤波）来计算每个像素邻域内的事件密度。
+    // 邻域内事件越多，该像素在分数图中的值就越高。
+    cv::Mat score_map;
+    cv::boxFilter(event_accum, score_map, event_accum.type(), cv::Size(kernel_size, kernel_size));
+
+    // 步骤2: 在分数图中寻找局部最大值。
+    // 一个高效的方法是比较原图和其膨胀（dilate）后的图像。
+    // 如果一个像素的值在膨胀后保持不变，那么它就是其邻域内的最大值。
+    cv::Mat dilated_map;
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(kernel_size, kernel_size));
+    cv::dilate(score_map, dilated_map, kernel);
+
+    cv::Mat local_maxima_mask;
+    cv::compare(score_map, dilated_map, local_maxima_mask, cv::CMP_EQ);
+
+    // 步骤3: 生成最终结果。
+    // 我们只保留那些既是原始事件点，又是其所在密度区域局部最大值的点。
+    cv::Mat result;
+    cv::bitwise_and(event_accum, local_maxima_mask, result);
+
+    return result;
 }
 
 void TimeSurface::drawPlot(const cv::Mat& data, const std::string& title, const std::string& path, cv::Scalar lineColor = cv::Scalar(0, 0, 255)) {
@@ -1098,7 +1141,7 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
     // std::cout<<ss.str()<<std::endl;
   // evt_persec++;
   // std::cout<<evt_persec<<std::endl;
-  if(events_.size() < 2*eventNumber_)
+  if(events_.size() < 10*eventNumber_)
     return;
 #ifdef ESVO_TS_LOG
     TicToc tt;
@@ -1262,14 +1305,14 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     // std::cout<<"Event time is "<< e.ts.toSec()<<"Current time is "<< ros::Time::now().toSec()<<std::endl;
     events_.push_back(e);
     // InvolvedEvents_.push_back(e);
-    int i = events_.size() - 2;
-    while(i >= 0 && events_[i].ts > e.ts)
-    {
-      events_[i+1] = events_[i];
-      i--;
-    }
-    // std::cout<<"Bro time is "<< e.ts.toSec()<<"Current time is "<< ros::Time::now().toSec()<<std::endl;
-    events_[i+1] = e;
+    // int i = events_.size() - 2;
+    // while(i >= 0 && events_[i].ts > e.ts)
+    // {
+    //   events_[i+1] = events_[i];
+    //   i--;
+    // }
+    // // std::cout<<"Bro time is "<< e.ts.toSec()<<"Current time is "<< ros::Time::now().toSec()<<std::endl;
+    // events_[i+1] = e;
 
     const dvs_msgs::Event& last_event = events_.back();
     // Use a vector instead

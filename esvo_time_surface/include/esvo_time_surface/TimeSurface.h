@@ -20,6 +20,7 @@
 #include <deque>
 #include <mutex>
 #include <Eigen/Eigen>
+#include <random>
 
 namespace esvo_time_surface
 {
@@ -203,6 +204,22 @@ private:
     BACKWARD,// used in the T-RO20 submission
     FORWARD
   } time_surface_mode_;
+int r_ = 5;  // radius of the cone kernel (pixels)
+
+// (dx, dy) offsets that lie inside the circle of radius r_
+struct KernelOff { int dx; int dy; };
+std::vector<KernelOff> coneOff_;   // size ≈ π r_^2
+std::vector<uint16_t>  coneU16_;   // matching weights (scaled, e.g., ×256)
+
+// --- sparse accumulator ---
+cv::Mat acc32u_;                   // H×W, CV_32S; reused each frame
+std::vector<int> touched_;         // linear indices touched this frame
+
+// --- one-time setup (declare; define in .cpp) ---
+void precomputeConeInt();      
+cv::Mat NMS(const cv::Mat& event_accum, int kernel_size);
+bool oddctr = true;
+int goodie = 0;
 };
 } // namespace esvo_time_surface
 #endif // esvo_time_surface_H_

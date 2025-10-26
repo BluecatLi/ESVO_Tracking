@@ -149,6 +149,20 @@ struct RegProblemLM : public optimization::OptimizationFunctor<double>
   // debug
   bool bPrint_;
   bool bFirst;
+  // private:
+Eigen::Vector3d rot_prior_;   // prior rotation vector (so(3))
+Eigen::Vector3d sqrtW_rot_;   // sqrt-weights for SO(3) residual
+bool use_rot_prior_ = false;
+
+// public:
+void setRotationRegularization(const Eigen::Vector3d& rot_prior,
+                               const Eigen::Vector3d& sqrtW_rot)
+{
+  rot_prior_     = rot_prior;
+  sqrtW_rot_     = sqrtW_rot;
+  use_rot_prior_ = true;
+}
+void clearRotationRegularization() { use_rot_prior_ = false; }
 };// struct RegProblemLM
 }// namespace core
 }// namespace esvo_core
