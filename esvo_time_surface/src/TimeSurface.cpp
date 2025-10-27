@@ -834,7 +834,9 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   cv::Mat temp;
   cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
   int ctr = 0;
-    assignDistances(outputImage, disI, 8, ctr);
+    assignDistances(outputImage, disI, 20, ctr);
+  // cv::normalize(disI, disI, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+  // cv::bitwise_or(disI, outputImage, disI);
   events_.erase(events_.begin(), events_.begin() + remove_events);
   // if(oddctr){
   //   assignDistances(outputImage, disI, 12, ctr);
@@ -991,7 +993,7 @@ void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr)
               ctr++;
               for (int i = -radius; i <= radius; ++i) {
                   for (int j = -radius; j <= radius; ++j) {
-                      if (i*i + j*j > laradius)  // ✅ Circular region check
+                      if (i*i + j*j > laradius)  // Circular region check
                           continue;
   
                       int ni = u + i;
@@ -1002,6 +1004,7 @@ void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr)
   
                       double dist = static_cast<double>(sqrt(i*i+j*j));
                       I.at<double>(ni, nj) += laradius - dist;
+
                   }
               }
           }
@@ -1010,6 +1013,49 @@ void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr)
   
 
 }
+
+
+// void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr)
+// {
+//     CV_Assert(S.size() == I.size() && S.type() == CV_8U && I.type() == CV_64F);
+//     const int radius = k / 2;
+//     const int r2 = radius * radius;
+//     const double R = static_cast<double>(radius);  // use double for weights
+//     const int rows = S.rows, cols = S.cols;
+
+//     // (Optional) Use a smoother kernel than linear: Gaussian falloff
+//     // sigma ~ radius/2 works well
+//     const double sigma2 = (R*R) / 4.0;
+
+//     for (int u = 0; u < rows; ++u) {
+//         for (int v = 0; v < cols; ++v) {
+//             if (S.at<uchar>(u, v) > 0) {
+//                 ctr++;
+//                 for (int i = -radius; i <= radius; ++i) {
+//                     for (int j = -radius; j <= radius; ++j) {
+//                         const int dd = i*i + j*j;
+//                         if (dd > r2) continue;              // ✅ correct disk test
+
+//                         const int ni = u + i, nj = v + j;
+//                         if ((unsigned)ni >= (unsigned)rows || (unsigned)nj >= (unsigned)cols) continue;
+
+//                         // Choose ONE of the following weights:
+
+//                         // A) Linear ramp (softer after the radius fix)
+//                         // double dist = std::sqrt((double)dd);
+//                         // double w = std::max(0.0, R - dist);          // linear
+
+//                         // B) Gaussian ramp (smoother, usually clearer)
+//                         double w = std::exp(-(double)dd / (2.0 * sigma2));
+
+//                         I.at<double>(ni, nj) += w;
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+
 
 void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync_time)
 {
