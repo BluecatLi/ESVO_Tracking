@@ -21,6 +21,10 @@
 #include <mutex>
 #include <Eigen/Eigen>
 #include <random>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <string>
+#include <vector>
 
 namespace esvo_time_surface
 {
@@ -220,6 +224,8 @@ void precomputeConeInt();
 cv::Mat NMS(const cv::Mat& event_accum, int kernel_size);
 bool oddctr = true;
 int goodie = 0;
+std::vector<cv::String> seg_paths_;
+std::size_t seg_pos_ = 0;
 };
 } // namespace esvo_time_surface
 #endif // esvo_time_surface_H_

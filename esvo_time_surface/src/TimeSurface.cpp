@@ -50,7 +50,8 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   pointSet = cv::imread("/home/yufan/Data/2025/0212/ps.png", 0);
   // pointSet = cv::imread("/home/yufan/Data/2024/1018/ev_resized.png", 0);
   prev_TS = cv::Mat::zeros(sensor_size_, CV_8UC1);
-  
+  cv::glob("/home/yufan/Data/E-POSE/scissors/t_10_gl/*_segmented_image.png", seg_paths_, /*recursive=*/false);
+
 }
 
 TimeSurface::~TimeSurface()
@@ -835,8 +836,10 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
   int ctr = 0;
     assignDistances(outputImage, disI, 20, ctr);
+  cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
   // cv::normalize(disI, disI, 0, 255, cv::NORM_MINMAX, CV_8UC1);
   // cv::bitwise_or(disI, outputImage, disI);
+  // size_t remove_events = static_cast<size_t>(20000);
   events_.erase(events_.begin(), events_.begin() + remove_events);
   // if(oddctr){
   //   assignDistances(outputImage, disI, 12, ctr);
@@ -865,7 +868,6 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   //   drawPlot(gradient, "Gradient of Row 240", "/home/yufan/Data/2025/0331/grad.png", cv::Scalar(255, 0, 0));
   
   // std::cout<<"Point number: "<<ctr<<std::endl;
-  cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
 
   // //Save images for debug
@@ -1063,8 +1065,13 @@ void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync
 
   cv::Size sensor_size_2 = cv::Size(346,260);
   // sensor_size_2 = cv::Size(0,0);
+  if (seg_pos_ >= seg_paths_.size()) {
+    return;
+  }
+  const std::string p = static_cast<std::string>(seg_paths_[seg_pos_++]);
   event_accumulation = cv::Mat::zeros(sensor_size_2, CV_64F);
-  event_accumulation = cv::imread("/home/yufan/Data/E-POSE/cheese/t_10_gl/0107_event_image.png", 0);
+  event_accumulation = cv::imread(p, 0);
+  std::cout<<p<<std::endl;
   cv::threshold(event_accumulation, event_accumulation, 0, 255, cv::THRESH_BINARY);
   // auto it = events_.rbegin(); // Reverse iterator pointing to the last element
   // const dvs_msgs::Event& lastEv = *it;
@@ -1077,6 +1084,7 @@ void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync
   // std::cout<<1000*(lastEv.ts-firstEv.ts).toSec()<<std::endl;
   // event_accumulation.convertTo(event_accumulation, CV_8U);
   cv::Mat outputImage = event_accumulation;
+  cv::normalize(outputImage, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
   // int kernelSize = 1; // Kernel size must be odd and greater than 1 (e.g., 3, 5, 7)
   //   cv::medianBlur(event_accumulation, outputImage, kernelSize);
   cv::Mat resizedTS;
@@ -1084,7 +1092,10 @@ void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync
   // cv::resize(outputImage, resizedTS, cv::Size(160, 120), 0, 0, cv::INTER_AREA);
   // cv::threshold(resizedTS, resizedTS, 1, 255, cv::THRESH_BINARY);  
 
-
+  cv::Mat disI = cv::Mat::zeros(sensor_size_2, CV_64F);
+  int ctr = 0;
+    assignDistances(outputImage, disI, 4, ctr);
+  cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
 
 //   int tileWidth = 34;
@@ -1105,33 +1116,33 @@ void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync
     
   // cv::resize(pointSet, pointSet, cv::Size(160, 120), 0, 0, cv::INTER_AREA);
   // cv::threshold(pointSet, pointSet, 2, 255, cv::THRESH_BINARY);
-  cv::Mat binaryMask;
-  cv::threshold(outputImage, binaryMask, 5, 1, cv::THRESH_BINARY);
-  cv::Mat disField;
-  cv::distanceTransform(1-binaryMask, disField, cv::DIST_L2, 3);
-  for (int y = 0; y < disField.rows; y++) {
-        for (int x = 0; x < disField.cols; x++) {
-          // int tileIndex = (y / tileHeight) * (640 / tileWidth) + x / tileWidth;
-          int disPara;
+  // cv::Mat binaryMask;
+  // cv::threshold(outputImage, binaryMask, 5, 1, cv::THRESH_BINARY);
+  // cv::Mat disField;
+  // cv::distanceTransform(1-binaryMask, disField, cv::DIST_L2, 3);
+  // for (int y = 0; y < disField.rows; y++) {
+  //       for (int x = 0; x < disField.cols; x++) {
+  //         // int tileIndex = (y / tileHeight) * (640 / tileWidth) + x / tileWidth;
+  //         int disPara;
 
-            disPara = 3;
-            if (disField.at<float>(y, x) > disPara) {
-                disField.at<float>(y, x) = 0; // Set to 0 if distance > 10
-            }
-            else (disField.at<float>(y, x) = disPara - disField.at<float>(y, x));
-        }
-    }
-  cv::normalize(disField, disField, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+  //           disPara = 3;
+  //           if (disField.at<float>(y, x) > disPara) {
+  //               disField.at<float>(y, x) = 0; // Set to 0 if distance > 10
+  //           }
+  //           else (disField.at<float>(y, x) = disPara - disField.at<float>(y, x));
+  //       }
+  //   }
+  // cv::normalize(disField, disField, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-    for (int i = 0; i < 260; ++i) {
-        for (int j = 0; j < 346; ++j) {
-            if (outputImage.at<uchar>(i, j) == 0) { // Assuming the matrices are of type CV_8U
-                outputImage.at<uchar>(i, j) = disField.at<uchar>(i, j);
-                // std::cout<<"Bulabula"<<std::endl;
-            }
+  //   for (int i = 0; i < 260; ++i) {
+  //       for (int j = 0; j < 346; ++j) {
+  //           if (outputImage.at<uchar>(i, j) == 0) { // Assuming the matrices are of type CV_8U
+  //               outputImage.at<uchar>(i, j) = disField.at<uchar>(i, j);
+  //               // std::cout<<"Bulabula"<<std::endl;
+  //           }
 
-        }
-    }
+  //       }
+  //   }
 
   // // //Save images for debug
   // std::stringstream ss;
@@ -1139,17 +1150,23 @@ void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync
   // std::string filename = "/home/yufan/Data/2025/0212/exp1/DF2/" + ss.str() + ".png";
   // cv::imwrite(filename, outputImage);
 
-  cv::imwrite("/home/yufan/Data/2025/0228/ps.png", outputImage);
-  cv::waitKey(0);
-  
+  // cv::imwrite("/home/yufan/Data/2025/0228/ps.png", outputImage);
+  // cv::waitKey(0);
+
+  size_t remove_events = static_cast<size_t>(20000);
+  events_.erase(events_.begin(), events_.begin() + remove_events);
+  auto it = events_.begin(); //  iterator pointing to the first element
+  ros::Time tsBegin; 
+  tsBegin = it->ts;
   static cv_bridge::CvImage cv_image, cv_image3;
   cv_image.encoding = "mono8";
   cv_image.image = outputImage.clone();
+  cv_image.header.stamp = tsBegin;
   if (time_surface_mode_ == BACKWARD && bCamInfoAvailable_ && time_surface_pub_.getNumSubscribers() > 0)
   {
     time_surface_pub_.publish(cv_image.toImageMsg());
     cv_image3.encoding = cv_image.encoding;
-    cv_image3.header.stamp = external_sync_time;
+    cv_image3.header.stamp = tsBegin;
     cv_image3.image = pointSet.clone();
     pointSet_pub_.publish(cv_image3.toImageMsg());
   }
@@ -1218,7 +1235,7 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
       createTimeSurfaceAtTime(sync_time_);
     if(NUM_THREAD_TS > 1)
       // createTimeSurfaceAtTime_hyperthread(sync_time_);
-      createEventDistanceField_ConsN(eventNumber_, sync_time_);
+      createEventAccumulation2(eventNumber_, sync_time_);
 #ifdef ESVO_TS_LOG
     LOG(INFO) << "Time Surface map's creation takes: " << tt.toc() << " ms.";
 #endif

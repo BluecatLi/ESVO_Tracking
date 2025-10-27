@@ -664,7 +664,7 @@ void
 esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   int count_255 = cv::countNonZero(edge == 255);
   cv::Mat img = edge;
-  std::cout << "Number of pixels with value 255: " << count_255 << std::endl;
+  // std::cout << "Number of pixels with value 255: " << count_255 << std::endl;
   // std::cout<<img.type()<<std::endl;
   cv::cvtColor(img, img, CV_GRAY2BGR);
   // std::cout<<img<<std::endl;
@@ -740,7 +740,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   // cv::imwrite(oss.str(), edge);
   std_msgs::Header header;
   header.stamp = fake_time_;
-  fake_time_ += ros::Duration(0.1);  // Add 1 second
+  fake_time_ += ros::Duration(0.01);  // Add 1 second
 
   refPCMap_.emplace(header.stamp, pc_); 
   if(refPCMap_.size() > REF_HISTORY_LENGTH_)
@@ -777,7 +777,7 @@ esvo_Tracking::pointsetCallback(const sensor_msgs::ImageConstPtr &point_set)
 
   int count_255 = cv::countNonZero(img == 255);
 
-  std::cout << "Number of pixels with value 255: " << count_255 << std::endl;
+  std::cout << "Value 255 number: " << count_255 << std::endl;
   // std::cout<<img.type()<<std::endl;
   cv::cvtColor(img, img, CV_GRAY2BGR);
   // std::cout<<img<<std::endl;

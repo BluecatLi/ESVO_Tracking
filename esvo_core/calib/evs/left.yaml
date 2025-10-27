@@ -1,10 +1,10 @@
-image_width: 640
-image_height: 480
+image_width: 346
+image_height: 260
 camera_name: Prophesee_Gen3.1
 camera_matrix:
   rows: 3
   cols: 3
-  data: [566.4748348, 0, 310.839267, 0, 567.7479384,200.4992578, 0, 0, 1]
+  data: [292.52 , 0, 172.61, 0, 293.19,130.125, 0, 0, 1]
 distortion_model: plumb_bob
 distortion_coefficients:
   rows: 1
@@ -19,7 +19,7 @@ rectification_matrix:
 projection_matrix:
   rows: 3
   cols: 4
-  data: [566.4748348, 0, 310.839267, 0, 0, 567.7479384,200.4992578, 0, 0, 0, 1, 0]
+  data: [292.52 , 0, 172.61, 0, 0, 293.19,130.125, 0, 0, 0, 1, 0]
 T_right_left:
   rows: 3
   cols: 4
