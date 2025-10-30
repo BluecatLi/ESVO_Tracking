@@ -50,8 +50,27 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   pointSet = cv::imread("/home/yufan/Data/2025/0212/ps.png", 0);
   // pointSet = cv::imread("/home/yufan/Data/2024/1018/ev_resized.png", 0);
   prev_TS = cv::Mat::zeros(sensor_size_, CV_8UC1);
-  cv::glob("/home/yufan/Data/E-POSE/scissors/t_10_gl/*_segmented_image.png", seg_paths_, /*recursive=*/false);
+  cv::glob("/home/yufan/Data/E-POSE/wrench/t_10_gl/*_segmented_image.png", seg_paths_, /*recursive=*/false);
+  dvs_msgs::EventArrayPtr msg(new dvs_msgs::EventArray);
+  const std::string CSV = "/home/yufan/Data/E-POSE/block/t_10_gl_events.csv";
+  const int WIDTH  = 346;   // or 640
+  const int HEIGHT = 260;   // or 480
 
+  if (!loadEventsCSV(CSV, WIDTH, HEIGHT, *msg)) {
+      ROS_ERROR("Failed to load events CSV");
+      return;
+  }
+
+  // Your existing processing:
+  for (const dvs_msgs::Event& e : msg->events) {
+      events_.push_back(e);
+      const dvs_msgs::Event& last_event = events_.back();
+      // ensure pEventTs_ is sized to width*height and initialized (e.g., zeros)
+      pEventTs_[last_event.x + last_event.y * msg->width] = last_event.ts.toSec();
+  }
+
+  clearEventQueue();
+  std::cout<<"Loaded "<< events_.size()<<" events!"<<std::endl;
 }
 
 TimeSurface::~TimeSurface()
@@ -66,6 +85,65 @@ void TimeSurface::init(int width, int height)
   // pEventQueueMat_.reset(new EventQueueMat(width, height, max_event_queue_length_));
   ROS_INFO("Sensor size: (%d x %d)", sensor_size_.width, sensor_size_.height);
   representation_SILC_ = cv::Mat::zeros(sensor_size_, CV_8UC1);
+}
+bool TimeSurface::loadEventsCSV(const std::string& csv_path, int width, int height, dvs_msgs::EventArray& out)
+{
+    std::ifstream f(csv_path);
+    if (!f.is_open()) {
+        ROS_ERROR_STREAM("Failed to open CSV: " << csv_path);
+        return false;
+    }
+
+    out.events.clear();
+    out.height = height;
+    out.width  = width;
+    out.header.stamp = ros::Time(0);
+    out.header.frame_id = "prophesee_camera";  // set as you like
+
+    std::string line;
+    // Skip header
+    if (!std::getline(f, line)) {
+        ROS_ERROR("CSV empty");
+        return false;
+    }
+
+    out.events.reserve(1 << 20); // optional: reserve some space if large
+
+    size_t bad = 0;
+    while (std::getline(f, line)) {
+        if (line.empty()) continue;
+        std::istringstream ss(line);
+        std::string s;
+        int x=0, y=0, p=0;
+        double t=0.0;
+
+        // Columns: x,y,t,p,file,idx_in_file
+        if (!std::getline(ss, s, ',')) { bad++; continue; } x = std::stoi(s);
+        if (!std::getline(ss, s, ',')) { bad++; continue; } y = std::stoi(s);
+        if (!std::getline(ss, s, ',')) { bad++; continue; } t = std::stod(s);
+        if (!std::getline(ss, s, ',')) { bad++; continue; } p = std::stoi(s);
+
+        // Skip the rest of the columns quickly
+        // (file, idx_in_file) -> consume but ignore
+        std::getline(ss, s, ','); // file
+        std::getline(ss, s, ','); // idx
+
+        // Bounds check (optional, but safer)
+        if (x < 0 || x >= width || y < 0 || y >= height) continue;
+
+        dvs_msgs::Event e;
+        e.x = x;
+        e.y = y;
+        e.ts = ros::Time().fromSec(t);
+        e.polarity = (p > 0);
+
+        out.events.push_back(e);
+    }
+
+    if (bad) {
+        ROS_WARN_STREAM("Skipped " << bad << " malformed CSV rows.");
+    }
+    return true;
 }
 
 void TimeSurface::createTimeSurfaceAtTime(const ros::Time& external_sync_time)
@@ -807,7 +885,9 @@ void TimeSurface::createEventDistanceField(int N, const ros::Time& external_sync
 void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& external_sync_time)
 {
   cv::Mat event_accumulation;
-  event_accumulation = cv::Mat::zeros(sensor_size_, CV_64F);
+
+  cv::Size sensor_size_2 = cv::Size(346,260);
+  event_accumulation = cv::Mat::zeros(sensor_size_2, CV_64F);
   auto it = events_.begin(); //  iterator pointing to the first element
   ros::Time tsBegin; 
   tsBegin = it->ts;
@@ -819,7 +899,7 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
         continue;
       event_accumulation.at<double>(event.y,event.x) = 255;
   }
-  size_t remove_events = static_cast<size_t>(20000);
+  size_t remove_events = static_cast<size_t>(N);
   // std::cout << std::fixed << std::setprecision(9) << "is "
   //         << tsBegin.toSec() << '\n';
   // std::cout<<"all right"<<std::endl;
@@ -833,10 +913,11 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   int kernelSize = 1; // Kernel size must be odd and greater than 1 (e.g., 3, 5, 7)
     cv::medianBlur(event_accumulation, outputImage, kernelSize);
   cv::Mat temp;
-  cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
+  cv::Mat disI = cv::Mat::zeros(sensor_size_2, CV_64F);
   int ctr = 0;
-    assignDistances(outputImage, disI, 20, ctr);
+    assignDistances(outputImage, disI, 8, ctr);
   cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+  cv::bitwise_or(outputImage, event_accumulation, outputImage);
   // cv::normalize(disI, disI, 0, 255, cv::NORM_MINMAX, CV_8UC1);
   // cv::bitwise_or(disI, outputImage, disI);
   // size_t remove_events = static_cast<size_t>(20000);
@@ -870,12 +951,12 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   // std::cout<<"Point number: "<<ctr<<std::endl;
 
 
-  // //Save images for debug
-  std::stringstream ss;
-  ss << std::setw(10) << std::setfill('0') << goodie << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
-  std::string filename = "/home/yufan/Data/2025/1006/exp1/DF1/" + ss.str() + ".png";
-  goodie ++;
-  cv::imwrite(filename, outputImage);
+  // // //Save images for debug
+  // std::stringstream ss;
+  // ss << std::setw(10) << std::setfill('0') << goodie << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
+  // std::string filename = "/home/yufan/Data/2025/1006/exp1/DF1/" + ss.str() + ".png";
+  // goodie ++;
+  // cv::imwrite(filename, outputImage);
 
   // cv::imwrite("/home/yufan/Data/2025/0331/edge.png", outputImage);
 
@@ -899,15 +980,9 @@ cv::Mat TimeSurface::NMS(const cv::Mat& event_accum, int kernel_size)
         kernel_size++;
     }
 
-    // 步骤1: 创建一个密度/分数图。
-    // 使用盒子滤波器（均值滤波）来计算每个像素邻域内的事件密度。
-    // 邻域内事件越多，该像素在分数图中的值就越高。
     cv::Mat score_map;
     cv::boxFilter(event_accum, score_map, event_accum.type(), cv::Size(kernel_size, kernel_size));
 
-    // 步骤2: 在分数图中寻找局部最大值。
-    // 一个高效的方法是比较原图和其膨胀（dilate）后的图像。
-    // 如果一个像素的值在膨胀后保持不变，那么它就是其邻域内的最大值。
     cv::Mat dilated_map;
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(kernel_size, kernel_size));
     cv::dilate(score_map, dilated_map, kernel);
@@ -915,8 +990,6 @@ cv::Mat TimeSurface::NMS(const cv::Mat& event_accum, int kernel_size)
     cv::Mat local_maxima_mask;
     cv::compare(score_map, dilated_map, local_maxima_mask, cv::CMP_EQ);
 
-    // 步骤3: 生成最终结果。
-    // 我们只保留那些既是原始事件点，又是其所在密度区域局部最大值的点。
     cv::Mat result;
     cv::bitwise_and(event_accum, local_maxima_mask, result);
 
@@ -995,7 +1068,7 @@ void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr)
               ctr++;
               for (int i = -radius; i <= radius; ++i) {
                   for (int j = -radius; j <= radius; ++j) {
-                      if (i*i + j*j > laradius)  // Circular region check
+                      if (i*i + j*j > laradius*2)  // Circular region check
                           continue;
   
                       int ni = u + i;
@@ -1094,7 +1167,7 @@ void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync
 
   cv::Mat disI = cv::Mat::zeros(sensor_size_2, CV_64F);
   int ctr = 0;
-    assignDistances(outputImage, disI, 4, ctr);
+    assignDistances(outputImage, disI, 8, ctr);
   cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
 
@@ -1174,68 +1247,23 @@ void TimeSurface::createEventAccumulation2(int N, const ros::Time& external_sync
 
 void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
 {
-  // How many times this callback function is called
-
-  // using namespace std::chrono;
-  // callback_counter_++;
-
-  // steady_clock::time_point now = steady_clock::now();
-  // duration<double> elapsed = now - last_print_time_;
-
-  // if (elapsed.count() >= 1.0)
-  // {
-  //   std::cout << "[syncCallback] Called " << callback_counter_ << " times in the last "
-  //             << elapsed.count() << " seconds. Rate: " 
-  //             << (callback_counter_ / elapsed.count()) << " Hz" << std::endl;
-  // }
-
-  //   callback_counter_ = 0;
-  //   last_print_time_ = now;
-  // }
-  // if(bUse_Sim_Time_)
-  //   sync_time_ = ros::Time::now();
-  //   // std::cout<<"jIAJIAJIA"<<std::endl;
-  // else
-  //   sync_time_ = msg->data;
-
-    // ros::Time currentTime = ros::Time::now();
-    // std::stringstream ss;
-    // ss << std::fixed << std::setprecision(9) << currentTime.toSec();
-    // std::cout<<ss.str()<<std::endl;
-  // evt_persec++;
-  // std::cout<<evt_persec<<std::endl;
+  // std::cout<<"Bulala"<<std::endl;
+  if(oddctr) return;
+  // std::cout<<"Bulala2"<<std::endl;
   if(events_.size() < 10*eventNumber_)
     return;
 #ifdef ESVO_TS_LOG
     TicToc tt;
     tt.tic();
 #endif
-  // how many events per second 
-  // evt_ctr ++;
-  // if(evt_ctr == 99){
-  //   evt_ctr = 0;
-  //   std::cout<<"Event in 1s = "<<events_.size() - evt_persec<<std::endl;
-  //   evt_persec = events_.size();
-  // }
-  // ros::Duration delta_t(0.01);
   if((events_.back().ts - sync_time_).toSec() < 0)
     return;
-  // sync_time_ = sync_time_ + delta_t;
-  
-  // sync_time_ = events_.back().ts;
-  // if((events_.back().ts-events_.front().ts).toSec() > 0.5)
-  //   return;
-  // std::cout<<"Event gap is      "<<(events_.back().ts-events_.front().ts).toSec()<<std::endl;
-  // std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
-  // ros::Time tmp = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
-  // std::cout<<"sync time = "<<sync_time_<<std::endl;
-  // std::cout<<tmp<<std::endl;
-  // std::cout<<" "<<std::endl;
+
     if(NUM_THREAD_TS == 1)
       createTimeSurfaceAtTime(sync_time_);
     if(NUM_THREAD_TS > 1)
       // createTimeSurfaceAtTime_hyperthread(sync_time_);
-      createEventAccumulation2(eventNumber_, sync_time_);
+      createEventDistanceField_ConsN(eventNumber_, sync_time_);
 #ifdef ESVO_TS_LOG
     LOG(INFO) << "Time Surface map's creation takes: " << tt.toc() << " ms.";
 #endif
@@ -1360,45 +1388,17 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 #endif
   if(!bSensorInitialized_)
     init(msg->width, msg->height);
+  oddctr = false;
+  // // std::cout<<"Last event timestamp is "<<std::endl;
+  // for(const dvs_msgs::Event& e : msg->events)
+  // {
+  //   events_.push_back(e);
+  //   const dvs_msgs::Event& last_event = events_.back();
+  //   pEventTs_[last_event.x + last_event.y*msg->width] = last_event.ts.toSec();
+  // }
 
-  // std::cout<<"Last event timestamp is "<<std::endl;
-  for(const dvs_msgs::Event& e : msg->events)
-  {
-    // std::cout<<"Time diff is "<<ros::Time::now().toSec() - e.ts.toSec()<<std::endl;
-    // std::cout<<"Event time is "<< e.ts.toSec()<<"Current time is "<< ros::Time::now().toSec()<<std::endl;
-    events_.push_back(e);
-    // InvolvedEvents_.push_back(e);
-    // int i = events_.size() - 2;
-    // while(i >= 0 && events_[i].ts > e.ts)
-    // {
-    //   events_[i+1] = events_[i];
-    //   i--;
-    // }
-    // // std::cout<<"Bro time is "<< e.ts.toSec()<<"Current time is "<< ros::Time::now().toSec()<<std::endl;
-    // events_[i+1] = e;
+  // clearEventQueue();
 
-    const dvs_msgs::Event& last_event = events_.back();
-    // Use a vector instead
-    // pEventQueueMat_->insertEvent(last_event);
-
-    // std::cout<<last_event.x<<" "<<last_event.y<<" "<<msg->width<<std::endl;
-    pEventTs_[last_event.x + last_event.y*msg->width] = last_event.ts.toSec();
-  }
-
-  // dvs_msgs::Event& ttevent = events_.back();
-  // std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
-  // std::cout<<"Event queue size is "<<events_.size()<<std::endl;
-  clearEventQueue();
-  // evt_persec++;
-  // std::cout<<evt_persec<<std::endl;
-  //Yufan added for debug
-  // sync_time_ = ttevent.ts;
-  // if(NUM_THREAD_TS == 1)
-  //   createTimeSurfaceAtTime(sync_time_);
-
-// #ifdef ESVO_TS_LOG
-//     // std::cout << "Event callback takes: " << tt.toc() << " ms."<<std::endl;
-// #endif
 }
 
 void TimeSurface::clearEventQueue()

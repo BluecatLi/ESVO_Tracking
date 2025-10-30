@@ -25,6 +25,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 namespace esvo_time_surface
 {
@@ -226,6 +228,7 @@ bool oddctr = true;
 int goodie = 0;
 std::vector<cv::String> seg_paths_;
 std::size_t seg_pos_ = 0;
+bool loadEventsCSV(const std::string& csv_path, int width, int height, dvs_msgs::EventArray& out);
 };
 } // namespace esvo_time_surface
 #endif // esvo_time_surface_H_

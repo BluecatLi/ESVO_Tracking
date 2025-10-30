@@ -40,7 +40,7 @@ esvo_Tracking::esvo_Tracking(
   ESVO_System_Status_("INITIALIZATION"),
   ets_(IDLE),
   pc_(new PointCloud()),
-  fake_time_(ros::Time(1.0))
+  fake_time_(ros::Time(0.0001))
 {
   // offline data
   dvs_frame_id_        = tools::param(pnh_, "dvs_frame_id", std::string("dvs"));
@@ -379,9 +379,9 @@ rerender();
 
 
 // 1) Print seconds with enough fractional digits
-std::cout << std::fixed << std::setprecision(9)
-          << cur_.t_.toSec() << '\n'
-          << TS_history_.rbegin()->first.toSec() << '\n';
+// std::cout << std::fixed << std::setprecision(9)
+//           << cur_.t_.toSec() << '\n'
+//           << TS_history_.rbegin()->first.toSec() << '\n';
 
 
       if(cur_.t_.toSec() < TS_history_.rbegin()->first.toSec())// new observation arrived
@@ -401,7 +401,7 @@ std::cout << std::fixed << std::setprecision(9)
       }
       else
       {
-        std::cout<<"Case2"<<std::endl;
+        // std::cout<<"Case2"<<std::endl;
         continue;
       }
     }
@@ -414,6 +414,7 @@ std::cout << std::fixed << std::setprecision(9)
 #endif
     if(rpSolver_.resetRegProblem(&ref_, &cur_))
     {
+        std::cout<<"Reset!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
 #ifdef  ESVO_CORE_TRACKING_DEBUG
       t_resetRegProblem = tt.toc();
       tt.tic();
@@ -424,8 +425,8 @@ std::cout << std::fixed << std::setprecision(9)
         nh_.setParam("/ESVO_SYSTEM_STATUS", "WORKING");
       if(rpType_ == REG_NUMERICAL)
         rpSolver_.solve_numerical();
-      if(rpType_ == REG_ANALYTICAL)
-        rpSolver_.solve_analytical();
+      if(rpType_ == REG_ANALYTICAL){
+        rpSolver_.solve_analytical();}
 #ifdef ESVO_CORE_TRACKING_DEBUG
       t_solve = tt.toc();
       tt.tic();
@@ -448,8 +449,8 @@ std::cout << std::fixed << std::setprecision(9)
     }
     else
     {
-      nh_.setParam("/ESVO_SYSTEM_STATUS", "INITIALIZATION");
-      ets_ = IDLE;
+      // nh_.setParam("/ESVO_SYSTEM_STATUS", "INITIALIZATION");
+      // ets_ = IDLE;
 //      LOG(INFO) << "Tracking thread is IDLE";
     }
 
@@ -485,7 +486,7 @@ std::cout << std::fixed << std::setprecision(9)
     LOG(INFO) << "pose size: " << lPose_.size();
     LOG(INFO) << "refPCMap_.size(): " << refPCMap_.size() << ", TS_history_.size(): " << TS_history_.size();
     // saveTrajectory(resultPath_ + "result.txt");/home/yufan/Data/2025/0405/
-    saveTrajectory("/home/yufan/Data/2025/0920/result.txt");
+    saveTrajectory("/home/yufan/Data/2025/1030/result.txt");
   }
 }
 
@@ -673,7 +674,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   pc_->clear();
   pc_->reserve(5000);
   int ctr = 0;
-  float thres = 20.0;
+  float thres = 5.0;
   for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)
@@ -740,7 +741,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   // cv::imwrite(oss.str(), edge);
   std_msgs::Header header;
   header.stamp = fake_time_;
-  fake_time_ += ros::Duration(0.01);  // Add 1 second
+  fake_time_ += ros::Duration(0.0001);  // Add 1 second
 
   refPCMap_.emplace(header.stamp, pc_); 
   if(refPCMap_.size() > REF_HISTORY_LENGTH_)
