@@ -485,7 +485,7 @@ std::cout << std::fixed << std::setprecision(9)
     LOG(INFO) << "pose size: " << lPose_.size();
     LOG(INFO) << "refPCMap_.size(): " << refPCMap_.size() << ", TS_history_.size(): " << TS_history_.size();
     // saveTrajectory(resultPath_ + "result.txt");/home/yufan/Data/2025/0405/
-    saveTrajectory("/home/yufan/Data/2025/0920/result.txt");
+    saveTrajectory("/home/yufan/Data/2025/1103/result.txt");
   }
 }
 
@@ -673,7 +673,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   pc_->clear();
   pc_->reserve(5000);
   int ctr = 0;
-  float thres = 20.0;
+  float thres = 80.0;
   for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)
@@ -1071,8 +1071,28 @@ if (moteur->continueRendering())
   header.stamp = fake_time_;
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "mono8", kf_I).toImageMsg();
   brightness_pub_.publish(msg);
-
-  // Fast benchmark-only depth visualization
+  //   std::vector<cv::Point> pts;
+  //   cv::findNonZero(edges, pts);
+  // // Write CSV
+  // std::ofstream ofs("/home/yufan/Data/2025/1031/pointset.csv");
+  // if (!ofs) {
+  //   throw std::runtime_error("Cannot open file: ");
+  // }
+  // ofs << "u,v,depth\n";
+  // ofs.setf(std::ios::fixed);
+  // ofs.precision(8);
+  // for (const auto& p : pts) {
+  //   // p.x = u (col), p.y = v (row)
+  //   if(edges.at<uchar>(p.y, p.x) < 20)
+  //     continue;
+  //   double d = kf_depth.at<double>(p.y, p.x);
+  //   // Optional: skip invalid/NaN depths
+  //   if (std::isfinite(d)) {
+  //     ofs << p.x << "," << p.y << "," << d << "\n";
+  //   }
+  // }
+  // ofs.close();
+  // cv::waitKey(0);
   refreshDepth(edges, kf_depth);
 }
 

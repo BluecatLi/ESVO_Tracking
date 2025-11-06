@@ -6,7 +6,7 @@
 #include <thread>
 // #include <vector>
 
-// #define ESVO_TS_LOG
+#define ESVO_TS_LOG
 
 namespace esvo_time_surface 
 {
@@ -834,9 +834,8 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   cv::Mat temp;
   cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
   int ctr = 0;
-    assignDistances(outputImage, disI, 20, ctr);
+    assignDistances(outputImage, disI, 10, ctr);
   // cv::normalize(disI, disI, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-  // cv::bitwise_or(disI, outputImage, disI);
   events_.erase(events_.begin(), events_.begin() + remove_events);
   // if(oddctr){
   //   assignDistances(outputImage, disI, 12, ctr);
@@ -867,13 +866,14 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   // std::cout<<"Point number: "<<ctr<<std::endl;
   cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-
+  cv::bitwise_or(event_accumulation, outputImage, outputImage);
+  cv::Mat EDFN = 255 - outputImage;
   // //Save images for debug
   std::stringstream ss;
   ss << std::setw(10) << std::setfill('0') << goodie << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
-  std::string filename = "/home/yufan/Data/2025/1006/exp1/DF1/" + ss.str() + ".png";
+  std::string filename = "/home/yufan/Data/2025/1103/cheezit1/EDF/" + ss.str() + ".png";
   goodie ++;
-  cv::imwrite(filename, outputImage);
+  cv::imwrite(filename, EDFN);
 
   // cv::imwrite("/home/yufan/Data/2025/0331/edge.png", outputImage);
 
@@ -993,7 +993,7 @@ void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr)
               ctr++;
               for (int i = -radius; i <= radius; ++i) {
                   for (int j = -radius; j <= radius; ++j) {
-                      if (i*i + j*j > laradius)  // Circular region check
+                      if (i*i + j*j > laradius+1)  // Circular region check
                           continue;
   
                       int ni = u + i;
