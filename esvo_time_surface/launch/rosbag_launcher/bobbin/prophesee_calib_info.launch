@@ -3,8 +3,8 @@
   <node name="prophesee_omni_info_pub" pkg="rostopic" type="rostopic"
     args="pub /prophesee/camera_info sensor_msgs/CameraInfo
     '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
-    height: 480, width: 640, distortion_model: 'plumb_bob',
-    D: [0, 0, 0, 0.],
+    height: 260, width: 346, distortion_model: 'plumb_bob',
+    D: [-0.362, 0.115, 0.0009576, 0.00000455, 0.130],
     K: [292.52 , 0, 172.61, 0, 293.19,130.125, 0, 0, 1],
     R: [1, 0, 0, 0, 1, 0, 0, 0, 1],
     P: [292.52 , 0, 172.61, 0, 0, 293.19,130.125, 0, 0, 0, 1, 0],

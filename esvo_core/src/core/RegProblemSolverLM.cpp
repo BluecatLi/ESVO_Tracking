@@ -52,11 +52,10 @@ bool RegProblemSolverLM::resetRegProblem(RefFrame* ref, CurFrame* cur)
   }
   if( ref->vPointXYZPtr_.size() < rpConfigPtr_->BATCH_SIZE_ )
   {
-    // std::cout<<ref->vPointXYZPtr_.size()<<" "<<rpConfigPtr_->BATCH_SIZE_<<std::endl;
-    // LOG(INFO) << "resetRegProblem RESET fails for no enough point cloud in the local map. "<<ref->vPointXYZPtr_.size();
-    // LOG(INFO) << "The system will be re-initialized";
-    // return false;
-    rpConfigPtr_->BATCH_SIZE_ = ref->vPointXYZPtr_.size();
+    std::cout<<ref->vPointXYZPtr_.size()<<" "<<rpConfigPtr_->BATCH_SIZE_<<std::endl;
+    LOG(INFO) << "resetRegProblem RESET fails for no enough point cloud in the local map. "<<ref->vPointXYZPtr_.size();
+    LOG(INFO) << "The system will be re-initialized";
+    return false;
   }
   //  LOG(INFO) << "resetRegProblem RESET succeeds.";
   if(rpType_ == REG_NUMERICAL)
@@ -106,12 +105,12 @@ bool RegProblemSolverLM::solve_numerical()
     iteration++;
     nfev += lm.nfev;
 
+    cv::Mat reprojMap_left = cv::Mat(cv::Size(camSysPtr_->cam_left_ptr_->width_, camSysPtr_->cam_left_ptr_->height_), CV_8UC1, cv::Scalar(0));
     /*************************** Visualization ************************/
     if(bVisualize_)// will slow down the tracker's performance a little bit
     {
       size_t width = camSysPtr_->cam_left_ptr_->width_;
       size_t height = camSysPtr_->cam_left_ptr_->height_;
-      cv::Mat reprojMap_left = cv::Mat(cv::Size(width, height), CV_8UC1, cv::Scalar(0));
       cv::eigen2cv(numDiff_regProblemPtr_->cur_->pTsObs_->TS_negative_left_, reprojMap_left);
       reprojMap_left.convertTo(reprojMap_left, CV_8UC1);
       cv::cvtColor(reprojMap_left, reprojMap_left, CV_GRAY2BGR);
@@ -135,6 +134,7 @@ bool RegProblemSolverLM::solve_numerical()
       header.stamp = numDiff_regProblemPtr_->cur_->t_;
       sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", reprojMap_left).toImageMsg();
       reprojMap_pub_->publish(msg);
+      
     }
     /*************************** Visualization ************************/
     if(status == 2 || status == 3)
@@ -290,6 +290,13 @@ bool RegProblemSolverLM::solve_analytical()
     header.stamp = regProblemPtr_->cur_->t_;
     sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", reprojMap_left).toImageMsg();
     reprojMap_pub_->publish(msg);
+    if(iteration == rpConfigPtr_->MAX_ITERATION_ ){
+        std::stringstream ss;
+        ss << regProblemPtr_->cur_->t_.sec << '.'
+          << std::setw(9) << std::setfill('0') << regProblemPtr_->cur_->t_.nsec;
+        std::string filename = "/home/yufan/Data/2025/1106/images/" + ss.str() + ".png";
+        imwrite(filename, reprojMap_left);
+      }
   }
   /*************************** Visualization ************************/
 

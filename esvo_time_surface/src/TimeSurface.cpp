@@ -50,9 +50,9 @@ TimeSurface::TimeSurface(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   pointSet = cv::imread("/home/yufan/Data/2025/0212/ps.png", 0);
   // pointSet = cv::imread("/home/yufan/Data/2024/1018/ev_resized.png", 0);
   prev_TS = cv::Mat::zeros(sensor_size_, CV_8UC1);
-  cv::glob("/home/yufan/Data/E-POSE/wrench/t_10_gl/*_segmented_image.png", seg_paths_, /*recursive=*/false);
+  cv::glob("/home/yufan/Data/E-POSE/rubik/t_10_gl/*_segmented_image.png", seg_paths_, /*recursive=*/false);
   dvs_msgs::EventArrayPtr msg(new dvs_msgs::EventArray);
-  const std::string CSV = "/home/yufan/Data/E-POSE/block/t_10_gl_events.csv";
+  const std::string CSV = "/home/yufan/Data/E-POSE/peg/t_10_gl_events.csv";
   const int WIDTH  = 346;   // or 640
   const int HEIGHT = 260;   // or 480
 
@@ -907,6 +907,8 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   // std::cout<<1000*(lastEv.ts-firstEv.ts).toSec()<<std::endl;
   // std::cout<<firstEv.ts<<"   "<<lastEv.ts<<std::endl;
   event_accumulation.convertTo(event_accumulation, CV_8U);
+
+  cv::remap(event_accumulation, event_accumulation, undistort_map1_, undistort_map2_, CV_INTER_LINEAR);
   int suppression_window_size = 3;
   cv::Mat thinned = NMS(event_accumulation, suppression_window_size);
   cv::Mat outputImage;
@@ -915,7 +917,7 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   cv::Mat temp;
   cv::Mat disI = cv::Mat::zeros(sensor_size_2, CV_64F);
   int ctr = 0;
-    assignDistances(outputImage, disI, 8, ctr);
+    assignDistances(outputImage, disI, 6, ctr);
   cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
   cv::bitwise_or(outputImage, event_accumulation, outputImage);
   // cv::normalize(disI, disI, 0, 255, cv::NORM_MINMAX, CV_8UC1);
@@ -1068,7 +1070,7 @@ void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr)
               ctr++;
               for (int i = -radius; i <= radius; ++i) {
                   for (int j = -radius; j <= radius; ++j) {
-                      if (i*i + j*j > laradius*2)  // Circular region check
+                      if (i*i + j*j > laradius*laradius)  // Circular region check
                           continue;
   
                       int ni = u + i;

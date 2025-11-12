@@ -7,7 +7,7 @@ patch_size_X: 1
 patch_size_Y: 1
 kernelSize: 5
 MAX_REGISTRATION_POINTS: 6000
-BATCH_SIZE: 500
+BATCH_SIZE: 100
 MAX_ITERATION: 15
 LSnorm: Huber #l2, Huber
 huber_threshold: 50
@@ -16,5 +16,5 @@ RegProblemType: 1 #( 0 numerical; 1 analytical)
 SAVE_TRAJECTORY: True
 PATH_TO_SAVE_TRAJECTORY: "/home/yufan/Data/2025/0429/"
 VISUALIZE_TRAJECTORY: True
-PATH_TO_LOAD_3DModel: "/home/yufan/Data/Model/block_5M.ply" #cheezit_5M_new  cupnoodle_v1  cookie_5M
+PATH_TO_LOAD_3DModel: "/home/yufan/Data/Model/ninehole_5M.ply" #cheezit_5M_new  cupnoodle_v1  cookie_5M
 PATH_TO_CAMERA_INTRINSICS: "/home/yufan/catkin_ws/src/ESVO_Tracking/esvo_core/cfg/tracking/omni.yaml" 
