@@ -290,13 +290,13 @@ bool RegProblemSolverLM::solve_analytical()
     header.stamp = regProblemPtr_->cur_->t_;
     sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", reprojMap_left).toImageMsg();
     reprojMap_pub_->publish(msg);
-    if(iteration == rpConfigPtr_->MAX_ITERATION_ ){
-        std::stringstream ss;
-        ss << regProblemPtr_->cur_->t_.sec << '.'
-          << std::setw(9) << std::setfill('0') << regProblemPtr_->cur_->t_.nsec;
-        std::string filename = "/home/yufan/Data/2025/1103/images/" + ss.str() + ".png";
-        imwrite(filename, reprojMap_left);
-      }
+    // if(iteration == rpConfigPtr_->MAX_ITERATION_ ){
+    //     std::stringstream ss;
+    //     ss << regProblemPtr_->cur_->t_.sec << '.'
+    //       << std::setw(9) << std::setfill('0') << regProblemPtr_->cur_->t_.nsec;
+    //     std::string filename = "/home/yufan/Data/2025/1103/images/" + ss.str() + ".png";
+    //     imwrite(filename, reprojMap_left);
+    //   }
   }
   /*************************** Visualization ************************/
 

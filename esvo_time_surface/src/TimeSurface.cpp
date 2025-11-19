@@ -867,13 +867,13 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   cv::normalize(disI, outputImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
   cv::bitwise_or(event_accumulation, outputImage, outputImage);
-  cv::Mat EDFN = 255 - outputImage;
-  // //Save images for debug
-  std::stringstream ss;
-  ss << std::setw(10) << std::setfill('0') << goodie << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
-  std::string filename = "/home/yufan/Data/2025/1103/cheezit1/EDF/" + ss.str() + ".png";
-  goodie ++;
-  cv::imwrite(filename, EDFN);
+  // cv::Mat EDFN = 255 - outputImage;
+  // // //Save images for debug
+  // std::stringstream ss;
+  // ss << std::setw(10) << std::setfill('0') << goodie << "_" << std::setw(9) << std::setfill('0') << external_sync_time.nsec;
+  // std::string filename = "/home/yufan/Data/2025/1103/cheezit1/EDF/" + ss.str() + ".png";
+  // goodie ++;
+  // cv::imwrite(filename, EDFN);
 
   // cv::imwrite("/home/yufan/Data/2025/0331/edge.png", outputImage);
 
@@ -993,7 +993,7 @@ void TimeSurface::assignDistances(const cv::Mat& S, cv::Mat& I, int k, int &ctr)
               ctr++;
               for (int i = -radius; i <= radius; ++i) {
                   for (int j = -radius; j <= radius; ++j) {
-                      if (i*i + j*j > laradius+1)  // Circular region check
+                      if (i*i + j*j > laradius*laradius)  // Circular region check
                           continue;
   
                       int ni = u + i;
@@ -1206,8 +1206,8 @@ void TimeSurface::syncCallback(const std_msgs::TimeConstPtr& msg)
   // sync_time_ = sync_time_ + delta_t;
   
   // sync_time_ = events_.back().ts;
-  // if((events_.back().ts-events_.front().ts).toSec() > 0.5)
-  //   return;
+  if((events_.back().ts-events_[events_.size() - 10000].ts).toSec() > 0.1)
+    return;
   // std::cout<<"Event gap is      "<<(events_.back().ts-events_.front().ts).toSec()<<std::endl;
   // std::cout<<"Sync now time is        "<<sync_time_<<std::endl;
   // ros::Time tmp = ros::Time((long int)startTimeSec_, (long int)startTimeNsec_);
