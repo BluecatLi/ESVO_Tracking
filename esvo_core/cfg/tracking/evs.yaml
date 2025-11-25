@@ -16,5 +16,5 @@ RegProblemType: 1 #( 0 numerical; 1 analytical)
 SAVE_TRAJECTORY: True
 PATH_TO_SAVE_TRAJECTORY: "/home/yufan/Data/2025/0429/"
 VISUALIZE_TRAJECTORY: True
-PATH_TO_LOAD_3DModel: "/home/yufan/Data/Model/drill_2M_2.ply" #cheezit_5M_new  cupnoodle_v1  cookie_5M  drill_2M   football_2M
+PATH_TO_LOAD_3DModel: "/home/yufan/Data/Model/cheezit_5M_new.ply" #cheezit_5M_new  cupnoodle_v1  cookie_5M  drill_2M   football_2M
 PATH_TO_CAMERA_INTRINSICS: "/home/yufan/catkin_ws/src/ESVO_Tracking/esvo_core/cfg/tracking/omni.yaml" 
