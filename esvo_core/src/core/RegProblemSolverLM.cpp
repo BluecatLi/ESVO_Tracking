@@ -294,7 +294,7 @@ bool RegProblemSolverLM::solve_analytical()
     //     std::stringstream ss;
     //     ss << regProblemPtr_->cur_->t_.sec << '.'
     //       << std::setw(9) << std::setfill('0') << regProblemPtr_->cur_->t_.nsec;
-    //     std::string filename = "/home/yufan/Data/2025/1103/images/" + ss.str() + ".png";
+    //     std::string filename = "/home/yufan/Data/2026/0119/cookie/exp2/images/" + ss.str() + ".png";
     //     imwrite(filename, reprojMap_left);
     //   }
   }

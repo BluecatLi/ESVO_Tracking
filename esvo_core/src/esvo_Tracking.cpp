@@ -673,7 +673,7 @@ esvo_Tracking::refreshDepth(cv::Mat& edge, cv::Mat& depth){
   pc_->clear();
   pc_->reserve(5000);
   int ctr = 0;
-  float thres = 50.0;
+  float thres = 10.0;
   for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)

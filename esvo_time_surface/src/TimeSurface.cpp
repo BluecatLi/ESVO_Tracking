@@ -818,7 +818,7 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
         continue;
       event_accumulation.at<double>(event.y,event.x) = 255;
   }
-  size_t remove_events = static_cast<size_t>(20000);
+  size_t remove_events = static_cast<size_t>(N);
   // std::cout << std::fixed << std::setprecision(9) << "is "
   //         << tsBegin.toSec() << '\n';
   // std::cout<<"all right"<<std::endl;
@@ -834,7 +834,7 @@ void TimeSurface::createEventDistanceField_ConsN(int N, const ros::Time& externa
   cv::Mat temp;
   cv::Mat disI = cv::Mat::zeros(sensor_size_, CV_64F);
   int ctr = 0;
-    assignDistances(outputImage, disI, 10, ctr);
+    assignDistances(outputImage, disI,8, ctr);
   // cv::normalize(disI, disI, 0, 255, cv::NORM_MINMAX, CV_8UC1);
   events_.erase(events_.begin(), events_.begin() + remove_events);
   // if(oddctr){
@@ -1349,6 +1349,8 @@ void TimeSurface::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
   {
     // std::cout<<"Time diff is "<<ros::Time::now().toSec() - e.ts.toSec()<<std::endl;
     // std::cout<<"Event time is "<< e.ts.toSec()<<"Current time is "<< ros::Time::now().toSec()<<std::endl;
+    if(e.ts < sync_time_)
+      return;
     events_.push_back(e);
     // InvolvedEvents_.push_back(e);
     // int i = events_.size() - 2;
